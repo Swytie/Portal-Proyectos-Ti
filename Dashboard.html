@@ -441,6 +441,20 @@ function splashSelectTool(tool) {
   u.classList.remove('out-right','out-left');
 }
 
+function volverMenu() {
+  const splash = document.getElementById('splash');
+  if (!splash) return;
+  splash.style.display = 'flex';
+  splash.style.opacity = '0';
+  splash.classList.remove('hide');
+  requestAnimationFrame(() => { splash.style.transition = 'opacity .3s'; splash.style.opacity = '1'; });
+}
+
+function cerrarSesion() {
+  localStorage.removeItem('cm_auth_ts');
+  location.reload();
+}
+
 function splashBack() {
   const t = document.getElementById('spl-step-tools');
   const u = document.getElementById('spl-step-users');
@@ -480,6 +494,13 @@ function splashEnter(usuario) {
     </button>
     <button class="btn-outline btn-danger-soft" onclick="App.clearCache()" title="Limpiar archivo guardado" id="btn-clear-cache" style="display:none">
       <i class="ti ti-trash" aria-hidden="true"></i>
+    </button>
+    <div class="header-divider" style="height:22px"></div>
+    <button class="btn-outline" onclick="volverMenu()" title="Regresar al menú principal">
+      <i class="ti ti-layout-grid" aria-hidden="true"></i> Menú
+    </button>
+    <button class="btn-outline btn-danger-soft" onclick="cerrarSesion()" title="Cerrar sesión">
+      <i class="ti ti-logout" aria-hidden="true"></i>
     </button>
     <input type="file" id="file-input" accept=".xlsx,.xls" onchange="App.loadFile(event)" style="display:none">
   </div>
