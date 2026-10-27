@@ -38,6 +38,15 @@
     resetTimer();
   }
 
+  // Exponer logout global ANTES del return, para que siempre esté disponible
+  window.cmLogout = function() {
+    localStorage.removeItem(AUTH_KEY);
+    clearTimeout(_timer);
+    document.documentElement.style.visibility = 'hidden';
+    if (document.body) mount();
+    else document.addEventListener('DOMContentLoaded', mount);
+  };
+
   // ── Si ya está autenticado (sesión reciente), solo vigilar ──
   if (isAuthenticated()) {
     document.addEventListener('DOMContentLoaded', startActivityWatcher);
@@ -212,13 +221,4 @@
   } else {
     document.addEventListener('DOMContentLoaded', mount);
   }
-
-  // Exponer logout global para que cualquier página lo llame
-  window.cmLogout = function() {
-    localStorage.removeItem(AUTH_KEY);
-    clearTimeout(_timer);
-    document.documentElement.style.visibility = 'hidden';
-    if (document.body) mount();
-    else document.addEventListener('DOMContentLoaded', mount);
-  };
 })();
