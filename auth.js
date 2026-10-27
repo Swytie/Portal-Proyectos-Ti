@@ -46,6 +46,14 @@
 
   document.documentElement.style.visibility = 'hidden';
 
+  // Asegurar que Tabler Icons esté disponible para los iconos del login
+  if (!document.querySelector('link[href*="tabler-icons"]')) {
+    const lnk = document.createElement('link');
+    lnk.rel = 'stylesheet';
+    lnk.href = 'https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css';
+    document.head.appendChild(lnk);
+  }
+
   // ── UI del login ─────────────────────────────────────────
   function mount() {
     // Quitar overlay anterior si existe
@@ -142,12 +150,12 @@
           </div>
         </div>
         <div class="auth-divider"></div>
-        <div class="auth-icon-wrap">🔒</div>
+        <div class="auth-icon-wrap"><i class="ti ti-lock"></i></div>
         <div class="auth-title">Acceso restringido</div>
         <div class="auth-subtitle">Ingresa la contraseña para continuar</div>
         <div class="auth-input-wrap">
           <input id="auth-input" type="password" placeholder="Contraseña de acceso" autocomplete="current-password">
-          <button class="auth-eye" id="auth-eye" type="button" title="Mostrar/ocultar">👁</button>
+          <button class="auth-eye" id="auth-eye" type="button" title="Mostrar/ocultar"><i class="ti ti-eye"></i></button>
         </div>
         <button id="auth-btn">Ingresar</button>
         <div id="auth-err"></div>
@@ -174,7 +182,7 @@
     eye.addEventListener('click', () => {
       const show = input.type === 'password';
       input.type = show ? 'text' : 'password';
-      eye.textContent = show ? '🙈' : '👁';
+      eye.innerHTML = show ? '<i class="ti ti-eye-off"></i>' : '<i class="ti ti-eye"></i>';
     });
 
     function tryAuth() {

@@ -316,6 +316,16 @@
             <i class="ti ti-chevron-right spl-tool-arr"></i>
           </div>
         </div>
+        <div id="spl-cache-bar" style="display:none;margin-top:14px;padding:10px 14px;background:rgba(26,158,106,.08);border:1px solid rgba(26,158,106,.25);border-radius:10px;display:none;align-items:center;gap:10px">
+          <i class="ti ti-database-check" style="color:#1A9E6A;font-size:16px;flex-shrink:0"></i>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:12px;font-weight:600;color:#1A9E6A">Portafolio cargado en este equipo</div>
+            <div id="spl-cache-desc" style="font-size:11px;color:#A889AB;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
+          </div>
+          <button onclick="splashSelectTool('portafolio')" style="background:#1A9E6A;color:#fff;border:none;border-radius:8px;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:5px;white-space:nowrap;font-family:inherit">
+            <i class="ti ti-arrow-right"></i> Abrir dashboard
+          </button>
+        </div>
         <div class="spl-hint"><i class="ti ti-shield-lock"></i> Acceso restringido — solo personal autorizado de CHRISTUS MUGUERZA</div>
       </div>
 
@@ -366,18 +376,24 @@
 </div>
 
 <script>
-// Actualiza el badge del Portafolio según si hay caché
+// Actualiza badge y barra de caché según si hay archivo guardado
 (function() {
   try {
     const meta = JSON.parse(localStorage.getItem('cm_excel_meta') || 'null');
-    if (meta) {
-      const d = new Date(meta.ts);
-      const ts = d.toLocaleDateString('es-MX',{day:'2-digit',month:'short'});
-      const badge = document.getElementById('portafolio-badge');
-      const desc  = document.getElementById('portafolio-desc');
-      if (badge) { badge.textContent = '📂 Cargado'; badge.style.background='#e8f5e9'; badge.style.color='#1A9E6A'; }
-      if (desc)  { desc.textContent = `Archivo cargado el ${ts} · clic para abrir`; }
-    }
+    if (!meta) return;
+    const d  = new Date(meta.ts);
+    const ts = d.toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'}) + ' ' + d.toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'});
+    // Badge en la tarjeta
+    const badge = document.getElementById('portafolio-badge');
+    const desc  = document.getElementById('portafolio-desc');
+    if (badge) { badge.textContent = 'Cargado'; badge.style.cssText += ';background:#e8f5e9;color:#1A9E6A;border-color:#a7d7b5'; }
+    if (desc)  { desc.textContent = 'Archivo disponible en este equipo — clic para abrir'; }
+    // Barra verde inferior
+    const bar = document.getElementById('spl-cache-bar');
+    const dsc = document.getElementById('spl-cache-desc');
+    const name = meta.name || 'archivo';
+    if (bar) bar.style.display = 'flex';
+    if (dsc) dsc.textContent = name + ' · ' + ts;
   } catch(e) {}
 })();
 
