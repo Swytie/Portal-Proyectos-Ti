@@ -284,9 +284,26 @@
 
       <!-- Paso 1: Herramientas -->
       <div class="spl-step" id="spl-step-tools">
+        <div style="display:flex;justify-content:flex-end;margin-bottom:12px">
+          <button onclick="cerrarSesion()" style="background:none;border:1px solid rgba(0,0,0,.12);border-radius:8px;padding:6px 12px;font-size:11.5px;color:#6B4F6E;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:5px;transition:background .2s" onmouseover="this.style.background='rgba(0,0,0,.05)'" onmouseout="this.style.background='none'">
+            <i class="ti ti-logout" style="font-size:13px"></i> Cerrar sesión
+          </button>
+        </div>
         <div class="spl-eyebrow">Ecosistema TI — GSEE</div>
         <div class="spl-heading">¿Qué deseas<br>hacer hoy?</div>
         <div class="spl-sub">Selecciona una herramienta. Cada sesión registra quién accede.</div>
+        <div id="spl-cache-quick" style="display:none;margin-bottom:14px;padding:12px 16px;background:linear-gradient(135deg,rgba(26,158,106,.1),rgba(26,158,106,.05));border:1.5px solid rgba(26,158,106,.3);border-radius:12px;align-items:center;gap:12px;cursor:pointer" onclick="splashSelectTool('portafolio')">
+          <div style="width:36px;height:36px;border-radius:10px;background:rgba(26,158,106,.15);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            <i class="ti ti-database-check" style="font-size:18px;color:#1A9E6A"></i>
+          </div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:12.5px;font-weight:700;color:#1E0F20">Portafolio guardado en este equipo</div>
+            <div id="spl-cache-quick-desc" style="font-size:11px;color:#6B4F6E;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px"></div>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;background:#1A9E6A;color:#fff;border-radius:8px;padding:7px 14px;font-size:12px;font-weight:600">
+            <i class="ti ti-arrow-right"></i> Abrir
+          </div>
+        </div>
         <div class="spl-tools">
           <div class="spl-tool" onclick="splashSelectTool('portafolio')">
             <div class="spl-tool-ico ico-purple"><i class="ti ti-layout-dashboard"></i></div>
@@ -388,12 +405,17 @@
     const desc  = document.getElementById('portafolio-desc');
     if (badge) { badge.textContent = 'Cargado'; badge.style.cssText += ';background:#e8f5e9;color:#1A9E6A;border-color:#a7d7b5'; }
     if (desc)  { desc.textContent = 'Archivo disponible en este equipo — clic para abrir'; }
-    // Barra verde inferior
+    // Barra verde inferior (legacy)
     const bar = document.getElementById('spl-cache-bar');
     const dsc = document.getElementById('spl-cache-desc');
     const name = meta.name || 'archivo';
     if (bar) bar.style.display = 'flex';
     if (dsc) dsc.textContent = name + ' · ' + ts;
+    // Bloque rápido arriba de herramientas
+    const quick = document.getElementById('spl-cache-quick');
+    const qdsc  = document.getElementById('spl-cache-quick-desc');
+    if (quick) quick.style.display = 'flex';
+    if (qdsc)  qdsc.textContent = name + ' · ' + ts;
   } catch(e) {}
 })();
 
