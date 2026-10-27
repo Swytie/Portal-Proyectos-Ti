@@ -103,31 +103,49 @@ const buildLegend = (elId, labels, colors, counts) => {
 let APP_INITIALIZED = false, CURRENT_TAB = 'general';
 let LAST_VIEW_HASH = null;
 
-// ── LocalStorage: cache del Excel cargado ───────────────────
-const LS_KEY_DATA = 'cm_excel_b64';
+// ── IndexedDB: cache del Excel (sin límite de tamaño) ───────
+const IDB_NAME    = 'cm_portafolio';
+const IDB_STORE   = 'excel_cache';
 const LS_KEY_META = 'cm_excel_meta';
 
-function saveExcelCache(buffer, fileName) {
+function openIDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(IDB_NAME, 1);
+    req.onupgradeneeded = e => e.target.result.createObjectStore(IDB_STORE);
+    req.onsuccess = e => resolve(e.target.result);
+    req.onerror   = () => reject(req.error);
+  });
+}
+
+async function saveExcelCache(buffer, fileName) {
   try {
-    const bytes = new Uint8Array(buffer);
-    let bin = '';
-    for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
-    const b64 = btoa(bin);
-    localStorage.setItem(LS_KEY_DATA, b64);
+    const db  = await openIDB();
+    const tx  = db.transaction(IDB_STORE, 'readwrite');
+    tx.objectStore(IDB_STORE).put(buffer, 'latest');
     localStorage.setItem(LS_KEY_META, JSON.stringify({ name: fileName, ts: Date.now() }));
   } catch(e) { console.warn('No se pudo guardar en caché:', e); }
 }
 
 function loadExcelCache() {
+  return new Promise(async resolve => {
+    try {
+      const meta = JSON.parse(localStorage.getItem(LS_KEY_META) || 'null');
+      if (!meta) return resolve(null);
+      const db  = await openIDB();
+      const tx  = db.transaction(IDB_STORE, 'readonly');
+      const req = tx.objectStore(IDB_STORE).get('latest');
+      req.onsuccess = () => resolve(req.result ? { buffer: req.result, meta } : null);
+      req.onerror   = () => resolve(null);
+    } catch(e) { resolve(null); }
+  });
+}
+
+async function clearExcelCache() {
   try {
-    const b64 = localStorage.getItem(LS_KEY_DATA);
-    const meta = JSON.parse(localStorage.getItem(LS_KEY_META) || 'null');
-    if (!b64) return null;
-    const bin = atob(b64);
-    const bytes = new Uint8Array(bin.length);
-    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-    return { buffer: bytes.buffer, meta };
-  } catch(e) { return null; }
+    const db = await openIDB();
+    db.transaction(IDB_STORE, 'readwrite').objectStore(IDB_STORE).delete('latest');
+    localStorage.removeItem(LS_KEY_META);
+  } catch(e) {}
 }
 
 function updateCacheIndicator() {
@@ -241,8 +259,7 @@ const App = {
 
   clearCache() {
     if (!confirm('¿Limpiar el archivo guardado? Tendrás que cargarlo de nuevo.')) return;
-    localStorage.removeItem(LS_KEY_DATA);
-    localStorage.removeItem(LS_KEY_META);
+    clearExcelCache();
     updateCacheIndicator();
     ALL = []; FILTERED = [];
     APP_INITIALIZED = false;
@@ -313,8 +330,8 @@ const App = {
     reader.readAsArrayBuffer(file);
   },
 
-  tryLoadCache() {
-    const cached = loadExcelCache();
+  async tryLoadCache() {
+    const cached = await loadExcelCache();
     if (!cached) return false;
     App.parseExcel(cached.buffer);
     const d = new Date(cached.meta.ts);
