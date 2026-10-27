@@ -102,6 +102,52 @@ const buildLegend = (elId, labels, colors, counts) => {
 };
 let APP_INITIALIZED = false, CURRENT_TAB = 'general';
 let LAST_VIEW_HASH = null;
+
+// ── LocalStorage: cache del Excel cargado ───────────────────
+const LS_KEY_DATA = 'cm_excel_b64';
+const LS_KEY_META = 'cm_excel_meta';
+
+function saveExcelCache(buffer, fileName) {
+  try {
+    const bytes = new Uint8Array(buffer);
+    let bin = '';
+    for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+    const b64 = btoa(bin);
+    localStorage.setItem(LS_KEY_DATA, b64);
+    localStorage.setItem(LS_KEY_META, JSON.stringify({ name: fileName, ts: Date.now() }));
+  } catch(e) { console.warn('No se pudo guardar en caché:', e); }
+}
+
+function loadExcelCache() {
+  try {
+    const b64 = localStorage.getItem(LS_KEY_DATA);
+    const meta = JSON.parse(localStorage.getItem(LS_KEY_META) || 'null');
+    if (!b64) return null;
+    const bin = atob(b64);
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    return { buffer: bytes.buffer, meta };
+  } catch(e) { return null; }
+}
+
+function updateCacheIndicator() {
+  try {
+    const meta = JSON.parse(localStorage.getItem(LS_KEY_META) || 'null');
+    const el  = document.getElementById('cache-indicator');
+    const btn = document.getElementById('btn-clear-cache');
+    if (!el) return;
+    if (meta) {
+      const d = new Date(meta.ts);
+      const ts = d.toLocaleDateString('es-MX', {day:'2-digit',month:'short'}) + ' ' + d.toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'});
+      el.innerHTML = `<i class="ti ti-database-check"></i> <span title="${meta.name}">${meta.name.length > 28 ? meta.name.slice(0,25)+'…' : meta.name}</span><span class="ci-sep">·</span>${ts}`;
+      el.style.display = 'flex';
+      if (btn) btn.style.display = 'flex';
+    } else {
+      el.style.display = 'none';
+      if (btn) btn.style.display = 'none';
+    }
+  } catch(e) {}
+}
 const hashData = arr => JSON.stringify(arr);
 const DEFAULT_SORT_COL = '_idx', DEFAULT_SORT_DIR = 1;
 let SORT_COL = DEFAULT_SORT_COL, SORT_DIR = DEFAULT_SORT_DIR, SEARCH = '';
@@ -193,6 +239,23 @@ const App = {
     App.sharePointDisabledNotice();
   },
 
+  clearCache() {
+    if (!confirm('¿Limpiar el archivo guardado? Tendrás que cargarlo de nuevo.')) return;
+    localStorage.removeItem(LS_KEY_DATA);
+    localStorage.removeItem(LS_KEY_META);
+    updateCacheIndicator();
+    ALL = []; FILTERED = [];
+    APP_INITIALIZED = false;
+    document.getElementById('tabs').innerHTML = '';
+    document.getElementById('main').innerHTML = `
+      <div class="empty-state">
+        <i class="ti ti-table-import empty-icon"></i>
+        <div class="empty-title">Carga el archivo Excel del Portafolio</div>
+        <div class="empty-sub">Haz clic en "Cargar Excel" para comenzar.</div>
+      </div>`;
+    document.getElementById('last-update').textContent = '';
+  },
+
   scheduleRefresh() {
     if (refreshTimer) clearInterval(refreshTimer);
     nextRefreshAt = Date.now() + AUTO_REFRESH_MS;
@@ -239,12 +302,29 @@ const App = {
     if (!file) return;
     const reader = new FileReader();
     reader.onload = e => {
-      App.parseExcel(e.target.result);
+      const buffer = e.target.result;
+      saveExcelCache(buffer, file.name);
+      App.parseExcel(buffer);
       $('last-update').textContent = 'Cargado: ' + new Date().toLocaleTimeString('es-MX');
+      updateCacheIndicator();
       const splash = document.getElementById('splash');
       if (splash) { splash.classList.add('hide'); setTimeout(() => { splash.style.display = 'none'; }, 500); }
     };
     reader.readAsArrayBuffer(file);
+  },
+
+  tryLoadCache() {
+    const cached = loadExcelCache();
+    if (!cached) return false;
+    App.parseExcel(cached.buffer);
+    const d = new Date(cached.meta.ts);
+    const ts = d.toLocaleDateString('es-MX',{day:'2-digit',month:'short'}) + ' ' + d.toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'});
+    const el = $('last-update');
+    if (el) el.textContent = 'Caché: ' + ts;
+    updateCacheIndicator();
+    const splash = document.getElementById('splash');
+    if (splash) { splash.classList.add('hide'); setTimeout(() => { splash.style.display = 'none'; }, 500); }
+    return true;
   },
 
   parseMACTI(wb) {
@@ -1143,4 +1223,9 @@ const App = {
   },
 
 };
+
+// ── Auto-carga desde caché al abrir la página ─────────────
+document.addEventListener('DOMContentLoaded', () => {
+  App.tryLoadCache();
+});
 

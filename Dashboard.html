@@ -425,14 +425,17 @@ function splashEnter(usuario) {
     <div class="header-divider"></div>
     <div>
       <div class="header-title">Portafolio Expansión TI 2026</div>
-      <div class="header-sub">CHRISTUS MUGUERZA — Dashboard de Seguimiento</div>
+      <div class="header-sub">CHRISTUS MUGUERZA · Dirección de TI · Dashboard de Seguimiento</div>
     </div>
   </div>
   <div class="header-right">
+    <div id="cache-indicator" class="cache-indicator" style="display:none"></div>
     <span id="last-update" class="last-update"></span>
-    <span id="next-update" class="last-update"></span>
-    <button class="btn-outline" onclick="document.getElementById('file-input').click()">
-      <i class="ti ti-upload" aria-hidden="true"></i> Cargar manual
+    <button class="btn-outline" onclick="document.getElementById('file-input').click()" title="Cargar archivo Excel del portafolio">
+      <i class="ti ti-upload" aria-hidden="true"></i> Cargar Excel
+    </button>
+    <button class="btn-outline btn-danger-soft" onclick="App.clearCache()" title="Limpiar archivo guardado" id="btn-clear-cache" style="display:none">
+      <i class="ti ti-trash" aria-hidden="true"></i>
     </button>
     <input type="file" id="file-input" accept=".xlsx,.xls" onchange="App.loadFile(event)" style="display:none">
   </div>

@@ -188,8 +188,14 @@ body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--t
 
 .btn-outline { background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.25); color: #fff; padding: 6px 14px; border-radius: 8px; font-size: 12px; cursor: pointer; font-family: inherit; display: flex; align-items: center; gap: 6px; transition: background .2s; }
 .btn-outline:hover { background: rgba(255,255,255,.2); }
+.btn-danger-soft { background: rgba(220,50,50,.15); border-color: rgba(220,50,50,.35); padding: 6px 10px; }
+.btn-danger-soft:hover { background: rgba(220,50,50,.28); }
 .btn-primary { background: var(--p); color: #fff; border: none; padding: 7px 16px; border-radius: 8px; font-size: 12px; font-weight: 500; cursor: pointer; font-family: inherit; display: flex; align-items: center; gap: 6px; transition: background .2s; }
 .btn-primary:hover { background: var(--p-l); }
+.cache-indicator { display:flex; align-items:center; gap:5px; font-size:11px; color:rgba(255,255,255,.45); background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.12); border-radius:7px; padding:4px 10px; max-width:280px; }
+.cache-indicator .ti { font-size:13px; color:var(--p-ll); flex-shrink:0; }
+.cache-indicator span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.ci-sep { color:rgba(255,255,255,.25); margin:0 2px; flex-shrink:0; }
 
 /*TABS*/
 .tabs { background: var(--p-dark); border-bottom: none; padding: 0 1.5rem; display: flex; gap: 2px; overflow-x: auto; }
