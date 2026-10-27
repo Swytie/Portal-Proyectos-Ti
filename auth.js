@@ -6,15 +6,7 @@
   'use strict';
 
   const SESSION_KEY = 'cm_auth_ok';
-  const PASS_HASH   = '7e3f2a1d9b'; // hash simple de "CMti2026"
-
-  function simpleHash(str) {
-    let h = 0;
-    for (let i = 0; i < str.length; i++) {
-      h = (Math.imul(31, h) + str.charCodeAt(i)) | 0;
-    }
-    return Math.abs(h).toString(16).slice(0, 10);
-  }
+  const PASS        = 'CMti2026';
 
   if (sessionStorage.getItem(SESSION_KEY) === '1') return; // ya autenticado
 
@@ -112,7 +104,7 @@
 
     function tryAuth() {
       const val = input.value.trim();
-      if (simpleHash(val) === PASS_HASH) {
+      if (val === PASS) {
         sessionStorage.setItem(SESSION_KEY, '1');
         overlay.style.opacity = '0';
         overlay.style.transition = 'opacity .3s';
