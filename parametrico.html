@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Paramétrico TI | CHRISTUS MUGUERZA</title>
+  <script src="auth.js"></script>
+  <link rel="stylesheet" href="estilos.css">
+  <link rel="stylesheet" href="parametrico.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+</head>
+<body>
+
+<!-- Header -->
+<header class="header">
+  <div class="header-left">
+    <div class="logo-container">
+      <img src="logo.jpg" alt="CHRISTUS MUGUERZA" class="logo-img"
+           onerror="this.style.display='none';document.getElementById('logo-fb').style.display='flex'">
+      <div class="logo" id="logo-fb" style="display:none">CM</div>
+    </div>
+    <div class="header-divider"></div>
+    <div>
+      <div class="header-title">Paramétrico TI</div>
+      <div class="header-sub">Estimación de equipamiento para expansión hospitalaria</div>
+    </div>
+  </div>
+  <div style="display:flex;align-items:center;gap:8px">
+    <button class="pm-sact-btn pm-sact-dummy" onclick="cargarDummy()"
+      style="padding:6px 20px;font-size:12px;flex-direction:row;flex-wrap:nowrap;white-space:nowrap">
+      <i class="ti ti-player-play" style="font-size:13px"></i>
+      <span>Ejemplo demo</span>
+    </button>
+    <button class="btn-outline" onclick="confirmarReset()" style="font-family:inherit">
+      <i class="ti ti-refresh"></i> Reiniciar
+    </button>
+    <a href="Dashboard.html" class="btn-outline" style="text-decoration:none">
+      <i class="ti ti-arrow-left"></i> Dashboard
+    </a>
+  </div>
+</header>
+
+<!-- Layout -->
+<div class="pm-body">
+
+  <!-- Stepper lateral -->
+  <nav class="pm-stepper">
+    <div id="pm-stepper"></div>
+    <div class="pm-progress">
+      <div class="pm-progress-bar"><div class="pm-progress-fill" id="pm-prog-fill" style="width:10%"></div></div>
+      <div class="pm-progress-txt" id="pm-prog-txt">Bloque 1 de 9</div>
+    </div>
+  </nav>
+
+  <!-- Contenido principal -->
+  <main class="pm-main">
+
+    <!-- BLOQUE A — Información general -->
+    <section class="pm-block" data-block="0" id="bloque-A">
+      <div class="pm-block-hdr">
+        <div class="pm-block-ico">A</div>
+        <div>
+          <div class="pm-block-title">Información general</div>
+          <div class="pm-block-desc">Selecciona la unidad hospitalaria y describe el alcance del proyecto.</div>
+        </div>
+      </div>
+
+      <div class="pm-card">
+        <div class="pm-card-title"><i class="ti ti-building-hospital" style="font-size:13px;color:var(--p-ll)"></i> Unidad hospitalaria</div>
+        <div class="pm-field" style="margin-bottom:14px">
+          <label class="pm-label">Unidad <span class="pm-req">*</span></label>
+          <div class="unidad-combo" id="unidad-combo">
+            <div class="unidad-combo-input-wrap">
+              <i class="ti ti-search unidad-combo-ico"></i>
+              <input class="pm-input unidad-combo-input" id="campo-nombre"
+                placeholder="Busca o escribe el nombre de la unidad..."
+                autocomplete="off"
+                oninput="unidadFilter(this.value)"
+                onfocus="unidadOpen()"
+                onblur="setTimeout(()=>unidadClose(),180)">
+              <button class="unidad-combo-clear" id="unidad-clear" onclick="unidadClear()" title="Limpiar" style="display:none">
+                <i class="ti ti-x"></i>
+              </button>
+            </div>
+            <div class="unidad-combo-drop" id="unidad-drop" style="display:none"></div>
+            <input type="hidden" id="campo-unidad" value="-1">
+          </div>
+        </div>
+        <div class="pm-grid-2" style="margin-bottom:12px">
+          <div class="pm-field">
+            <label class="pm-label">Ciudad y estado</label>
+            <input class="pm-input" id="campo-ciudad" placeholder="Ciudad, Estado">
+          </div>
+          <div class="pm-field">
+            <label class="pm-label">Tipo de proyecto <span class="pm-req">*</span></label>
+            <select class="pm-select" id="campo-tipo">
+              <option>Expansión de servicios existentes</option>
+              <option>Nueva unidad / torre</option>
+              <option>Remodelación</option>
+              <option>Fusión de unidades</option>
+            </select>
+          </div>
+          <div class="pm-field">
+            <label class="pm-label">Tipo de paramétrico <span class="pm-req">*</span></label>
+            <select class="pm-select" id="campo-tipo-parametrico">
+              <option value="">Selecciona...</option>
+              <option>Estimación inicial (prefactibilidad)</option>
+              <option>Paramétrico de planeación</option>
+              <option>Paramétrico de ejecución</option>
+              <option>Paramétrico de cierre / revisión</option>
+            </select>
+          </div>
+          <div class="pm-field">
+            <label class="pm-label">Número de versión <span class="pm-req">*</span></label>
+            <input class="pm-input" id="campo-version" placeholder="Ej. v1.0, v2.3">
+          </div>
+          <div class="pm-field">
+            <label class="pm-label">Líder de proyecto <span class="pm-req">*</span></label>
+            <input class="pm-input" id="campo-lider" placeholder="Nombre del líder">
+          </div>
+          <div class="pm-field">
+            <label class="pm-label">Responsable TI</label>
+            <input class="pm-input" id="campo-responsable-ti" placeholder="Nombre del responsable TI">
+          </div>
+          <div class="pm-field">
+            <label class="pm-label">Inicio estimado <span class="pm-req">*</span></label>
+            <div class="dp-wrap" id="dp-inicio">
+              <input class="pm-input dp-input" id="campo-inicio" readonly placeholder="Selecciona fecha"
+                onclick="dpOpen('dp-inicio')">
+              <i class="ti ti-calendar dp-icon"></i>
+            </div>
+          </div>
+        </div>
+        <div class="pm-field">
+          <label class="pm-label">Descripción del alcance</label>
+          <textarea class="pm-textarea" id="campo-alcance" style="min-height:90px" placeholder="Describe qué áreas se habilitan, qué servicios se abren y cualquier contexto relevante."></textarea>
+        </div>
+      </div>
+
+      <div class="pm-nav">
+        <button class="pm-btn-prev" disabled><i class="ti ti-arrow-left"></i> Anterior</button>
+        <div class="pm-nav-info">Bloque 1 de 9</div>
+        <button class="pm-btn-next" onclick="goBlock(1)">Siguiente <i class="ti ti-arrow-right"></i></button>
+      </div>
+    </section>
+
+    <!-- BLOQUE B — Servicios y capacidad instalada -->
+    <section class="pm-block" data-block="1" id="bloque-B">
+      <div class="pm-block-hdr">
+        <div class="pm-block-ico">B</div>
+        <div>
+          <div class="pm-block-title">Servicios y capacidad instalada</div>
+          <div class="pm-block-desc">Define qué áreas y servicios contempla el proyecto, cuántos espacios tiene cada una y qué requieren tecnológicamente.</div>
+        </div>
+      </div>
+
+      <div class="pm-card">
+        <div class="pm-card-title"><i class="ti ti-layout-grid" style="font-size:13px;color:var(--p-ll)"></i> Áreas y servicios que operará el proyecto <span class="pm-req" style="font-size:10px">Selecciona al menos una</span></div>
+        <div class="pm-chips" id="bloque-b-chips">
+          <span class="pm-chip" data-area="Hospitalización">Hospitalización</span>
+          <span class="pm-chip" data-area="Urgencias">Urgencias</span>
+          <span class="pm-chip" data-area="Consulta externa">Consulta externa</span>
+          <span class="pm-chip" data-area="Quirófanos">Quirófanos</span>
+          <span class="pm-chip" data-area="Imagenología">Imagenología</span>
+          <span class="pm-chip" data-area="Laboratorio">Laboratorio</span>
+          <span class="pm-chip" data-area="Farmacia">Farmacia</span>
+          <span class="pm-chip" data-area="Admisión / recepción">Admisión / recepción</span>
+          <span class="pm-chip" data-area="Caja">Caja</span>
+          <span class="pm-chip" data-area="Oficinas administrativas">Oficinas administrativas</span>
+          <span class="pm-chip" data-area="Áreas médicas">Áreas médicas</span>
+          <span class="pm-chip" data-area="Enfermería">Enfermería</span>
+          <span class="pm-chip" data-area="Almacén">Almacén</span>
+          <span class="pm-chip" data-area="Servicios generales">Servicios generales</span>
+          <span class="pm-chip" data-area="Otros">Otros</span>
+        </div>
+      </div>
+
+      <div class="pm-card" id="bloque-b-detalles-card" style="display:none">
+        <div class="pm-card-title"><i class="ti ti-list-details" style="font-size:13px;color:var(--p-ll)"></i> Detalle por área seleccionada</div>
+        <p class="pm-hint" style="margin-bottom:14px">Para cada área indica el total de espacios, cuántos son nuevos y qué requieren. La herramienta calcula el equipamiento automáticamente.</p>
+        <div id="bloque-b-detalles"></div>
+      </div>
+
+      <div class="pm-nav">
+        <button class="pm-btn-prev" onclick="goBlock(-1)"><i class="ti ti-arrow-left"></i> Anterior</button>
+        <div class="pm-nav-info">Bloque 2 de 9</div>
+        <button class="pm-btn-next" onclick="goBlock(1)">Siguiente <i class="ti ti-arrow-right"></i></button>
+      </div>
+    </section>
+
+    <!-- BLOQUE C — Crecimiento de plantilla -->
+    <section class="pm-block" data-block="2" id="bloque-C">
+      <div class="pm-block-hdr">
+        <div class="pm-block-ico">C</div>
+        <div>
+          <div class="pm-block-title">Crecimiento de plantilla</div>
+          <div class="pm-block-desc">Registra cada puesto nuevo, sus funciones y turnos. El tipo de equipo se determina automáticamente según las funciones seleccionadas.</div>
+        </div>
+      </div>
+
+      <div class="pm-card">
+        <div class="pm-card-title"><i class="ti ti-user-question" style="font-size:13px;color:var(--p-ll)"></i> ¿El proyecto contempla incremento de plantilla?</div>
+        <div class="pm-radio-row">
+          <label class="pm-radio-lbl">
+            <input type="radio" name="tiene-plantilla" value="si" id="plantilla-si" onchange="togglePlantilla()" checked>
+            <span>Sí, hay posiciones nuevas</span>
+          </label>
+          <label class="pm-radio-lbl">
+            <input type="radio" name="tiene-plantilla" value="no" id="plantilla-no" onchange="togglePlantilla()">
+            <span>No, sin crecimiento de plantilla en esta fase</span>
+          </label>
+        </div>
+      </div>
+
+      <div id="bloque-c-plantilla">
+        <div class="pm-card">
+          <div class="pm-card-title"><i class="ti ti-users" style="font-size:13px;color:var(--p-ll)"></i> Posiciones nuevas <span class="pm-req" style="font-size:10px">Al menos una con función</span></div>
+          <div id="posiciones-list"></div>
+          <button class="pos-add-btn" onclick="addPosicion()">
+            <i class="ti ti-plus"></i> Agregar posición
+          </button>
+          <p class="pm-hint" style="margin-top:10px">Un médico en 3 turnos sin equipo dedicado genera <strong>3 estaciones</strong>, no un equipo por persona. Esto reduce el presupuesto significativamente.</p>
+        </div>
+      </div>
+
+      <div class="pm-nav">
+        <button class="pm-btn-prev" onclick="goBlock(-1)"><i class="ti ti-arrow-left"></i> Anterior</button>
+        <div class="pm-nav-info" id="plantilla-nav-info">Sin posiciones registradas</div>
+        <button class="pm-btn-next" onclick="goBlock(1)">Siguiente <i class="ti ti-arrow-right"></i></button>
+      </div>
+    </section>
+
+    <!-- BLOQUE D — Resumen dinámico de perfiles -->
+    <section class="pm-block" data-block="3" id="bloque-D">
+      <div class="pm-block-hdr">
+        <div class="pm-block-ico">D</div>
+        <div>
+          <div class="pm-block-title">Distribución de perfiles</div>
+          <div class="pm-block-desc">Resumen calculado de la plantilla: personas por perfil, estaciones reales necesarias y ahorro generado por la asignación compartida.</div>
+        </div>
+      </div>
+
+      <div class="pm-card">
+        <div class="pm-card-title"><i class="ti ti-chart-bar" style="font-size:13px;color:var(--p-ll)"></i> Personas por perfil de usuario</div>
+        <div id="bloque-d-resumen">
+          <!-- Se puebla dinámicamente por actualizarBloqueD() -->
+        </div>
+      </div>
+
+      <div class="pm-card" style="margin-top:14px">
+        <div class="pm-card-title"><i class="ti ti-info-circle" style="font-size:13px;color:var(--p-ll)"></i> Cómo se asigna el equipo por perfil</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px">
+          <div class="bd-ref-item"><span class="pos-badge-perfil A">A</span> <span>Clínico fijo — 1 equipo por persona</span></div>
+          <div class="bd-ref-item"><span class="pos-badge-perfil B">B</span> <span>Clínico compartido — 1 estación por turno</span></div>
+          <div class="bd-ref-item"><span class="pos-badge-perfil C">C</span> <span>Administrativo fijo — PC/laptop con M365</span></div>
+          <div class="bd-ref-item"><span class="pos-badge-perfil D">D</span> <span>Operativo — terminal o tableta por proceso</span></div>
+          <div class="bd-ref-item"><span class="pos-badge-perfil E">E</span> <span>Móvil — laptop sin estación fija</span></div>
+          <div class="bd-ref-item"><span class="pos-badge-perfil F">F</span> <span>Sin estación — solo identidad y accesos</span></div>
+        </div>
+      </div>
+
+      <div class="pm-nav">
+        <button class="pm-btn-prev" onclick="goBlock(-1)"><i class="ti ti-arrow-left"></i> Anterior</button>
+        <div class="pm-nav-info">Bloque 4 de 9</div>
+        <button class="pm-btn-next" onclick="goBlock(1)">Siguiente <i class="ti ti-arrow-right"></i></button>
+      </div>
+    </section>
+
+    <!-- BLOQUE E — Equipamiento por espacio físico -->
+    <section class="pm-block" data-block="4" id="bloque-E">
+      <div class="pm-block-hdr">
+        <div class="pm-block-ico">E</div>
+        <div>
+          <div class="pm-block-title">Equipamiento por espacio</div>
+          <div class="pm-block-desc">Indica cuántos espacios físicos nuevos se incorporan por tipo. Cada tipo aplica un paquete tecnológico estándar de forma automática.</div>
+        </div>
+      </div>
+
+      <div class="pm-card">
+        <div class="pm-card-title"><i class="ti ti-building-hospital" style="font-size:13px;color:var(--p-ll)"></i> Espacios nuevos por tipo</div>
+        <p class="pm-hint" style="margin-bottom:14px">Registra únicamente los espacios físicos <strong>nuevos</strong> que se incorporan. Los existentes se capturan en el Bloque I (Reutilización).</p>
+        <div class="espacio-table-wrap">
+          <table class="espacio-table" id="tabla-espacios">
+            <colgroup>
+              <col>
+              <col>
+              <col>
+            </colgroup>
+            <thead>
+              <tr>
+                <th>Tipo de espacio</th>
+                <th style="text-align:center">Cantidad</th>
+                <th>Paquete estándar generado</th>
+              </tr>
+            </thead>
+            <tbody id="espacio-tbody"></tbody>
+          </table>
+        </div>
+        <div class="espacio-totales" id="espacio-totales" style="display:none"></div>
+      </div>
+
+      <div class="pm-nav">
+        <button class="pm-btn-prev" onclick="goBlock(-1)"><i class="ti ti-arrow-left"></i> Anterior</button>
+        <div class="pm-nav-info">Bloque 5 de 9</div>
+        <button class="pm-btn-next" onclick="goBlock(1)">Siguiente <i class="ti ti-arrow-right"></i></button>
+      </div>
+    </section>
+
+    <!-- BLOQUE F — Infraestructura -->
+    <section class="pm-block" data-block="5" id="bloque-F">
+      <div class="pm-block-hdr">
+        <div class="pm-block-ico">F</div>
+        <div>
+          <div class="pm-block-title">Infraestructura de red</div>
+          <div class="pm-block-desc">Red cableada, Wi-Fi, sites y UPS. Los APs, switches y puntos de red se calculan automáticamente a partir del equipamiento y los metros cuadrados.</div>
+        </div>
+      </div>
+
+      <div class="pm-card">
+        <div class="pm-card-title"><i class="ti ti-topology-star" style="font-size:13px;color:var(--p-ll)"></i> ¿La infraestructura actual soporta la expansión?</div>
+        <div class="pm-radio-row">
+          <label class="pm-radio-lbl"><input type="radio" name="infra-soporte" value="si" id="infra-si"> <span>Sí, la red actual tiene capacidad</span></label>
+          <label class="pm-radio-lbl"><input type="radio" name="infra-soporte" value="parcial" id="infra-parcial" checked> <span>Parcialmente, requiere ampliación</span></label>
+          <label class="pm-radio-lbl"><input type="radio" name="infra-soporte" value="no" id="infra-no"> <span>No, se requiere infraestructura nueva</span></label>
+          <label class="pm-radio-lbl"><input type="radio" name="infra-soporte" value="pendiente" id="infra-pendiente"> <span>Pendiente de assessment</span></label>
+        </div>
+      </div>
+
+      <div class="pm-card">
+        <div class="pm-card-title"><i class="ti ti-network" style="font-size:13px;color:var(--p-ll)"></i> Red cableada</div>
+        <div class="pm-grid-3">
+          <div class="pm-field">
+            <label class="pm-label">Metros cuadrados del área nueva</label>
+            <input class="pm-input" type="number" id="campo-m2" placeholder="0">
+          </div>
+          <div class="pm-field">
+            <label class="pm-label">Puntos de red estimados</label>
+            <input class="pm-input" type="number" id="campo-puntos-calc" readonly style="color:var(--p);font-weight:700">
+          </div>
+          <div class="pm-field">
+            <label class="pm-label">Switches 48p requeridos</label>
+            <input class="pm-input" type="number" id="campo-switches-calc" readonly style="color:var(--p);font-weight:700">
+          </div>
+          <div class="pm-field">
+            <label class="pm-label">IDF / MDF nuevos</label>
+            <input class="pm-input" type="number" id="campo-idf" placeholder="0">
+          </div>
+          <div class="pm-field">
+            <label class="pm-label">Racks nuevos</label>
+            <input class="pm-input" type="number" id="campo-racks" placeholder="0">
+          </div>
+          <div class="pm-field">
+            <label class="pm-label">Fibra nueva (metros)</label>
+            <input class="pm-input" type="number" id="campo-fibra" placeholder="0">
+          </div>
+          <div class="pm-field">
+            <label class="pm-label">Categoría de cable</label>
+            <select class="pm-select">
+              <option>Cat 6A (recomendado clínico)</option>
+              <option selected>Cat 6</option>
+              <option>Cat 5e</option>
+            </select>
+          </div>
+          <div class="pm-field">
+            <label class="pm-label">Site de comunicaciones</label>
+            <select class="pm-select">
+              <option selected>Rack nuevo en piso</option>
+              <option>Extender rack existente</option>
+              <option>Site central</option>
+            </select>
+          </div>
+          <div class="pm-field">
+            <label class="pm-label">UPS nuevos</label>
+            <input class="pm-input" type="number" placeholder="0">
+          </div>
+        </div>
+      </div>
+
+      <div class="pm-card">
+        <div class="pm-card-title"><i class="ti ti-wifi" style="font-size:13px;color:var(--p-ll)"></i> Wi-Fi</div>
+        <div class="pm-grid-3">
+          <div class="pm-field">
+            <label class="pm-label">Access Points requeridos</label>
+            <input class="pm-input" type="number" id="campo-aps-calc" readonly style="color:var(--p);font-weight:700">
+            <div id="ap-nota" style="font-size:10px;color:var(--t3);margin-top:3px;line-height:1.4"></div>
+          </div>
+          <div class="pm-field">
+            <label class="pm-label">Estándar Wi-Fi</label>
+            <select class="pm-select">
+              <option selected>Wi-Fi 6 (802.11ax)</option>
+              <option>Wi-Fi 6E</option>
+              <option>Wi-Fi 5 (802.11ac)</option>
+            </select>
+          </div>
+          <div class="pm-field">
+            <label class="pm-label">Controlador</label>
+            <select class="pm-select">
+              <option selected>Cloud (mismo proveedor)</option>
+              <option>On-premise</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="pm-nav">
+        <button class="pm-btn-prev" onclick="goBlock(-1)"><i class="ti ti-arrow-left"></i> Anterior</button>
+        <div class="pm-nav-info">Bloque 6 de 9</div>
+        <button class="pm-btn-next" onclick="goBlock(1)">Siguiente <i class="ti ti-arrow-right"></i></button>
+      </div>
+    </section>
+
+    <!-- BLOQUE G — Sistemas y licenciamiento -->
+    <section class="pm-block" data-block="6" id="bloque-G">
+      <div class="pm-block-hdr">
+        <div class="pm-block-ico">G</div>
+        <div>
+          <div class="pm-block-title">Sistemas y licenciamiento</div>
+          <div class="pm-block-desc">Selecciona los procesos que realizará la expansión. La herramienta deriva los aplicativos requeridos y el tipo de licencia correspondiente.</div>
+        </div>
+      </div>
+
+      <div class="pm-card">
+        <div class="pm-card-title"><i class="ti ti-circuit-switchboard" style="font-size:13px;color:var(--p-ll)"></i> ¿Qué procesos realizará esta expansión?</div>
+        <div class="pm-proc-list" id="bloque-g-procesos">
+          <label class="pm-proc-item">
+            <input type="checkbox" id="proc-clinico" onchange="derivarLicencias()">
+            <div class="pm-proc-body">
+              <div class="pm-proc-label">¿Habrá atención clínica?</div>
+              <div class="pm-proc-deriva"><i class="ti ti-arrow-right" style="font-size:10px"></i> Evalúa TASY (HIS)</div>
+            </div>
+          </label>
+          <label class="pm-proc-item">
+            <input type="checkbox" id="proc-farmacia" onchange="derivarLicencias()">
+            <div class="pm-proc-body">
+              <div class="pm-proc-label">¿Habrá manejo de inventario o farmacia?</div>
+              <div class="pm-proc-deriva"><i class="ti ti-arrow-right" style="font-size:10px"></i> Evalúa SAP WM / TASY farmacia</div>
+            </div>
+          </label>
+          <label class="pm-proc-item">
+            <input type="checkbox" id="proc-personal" onchange="derivarLicencias()">
+            <div class="pm-proc-body">
+              <div class="pm-proc-label">¿Habrá personal nuevo?</div>
+              <div class="pm-proc-deriva"><i class="ti ti-arrow-right" style="font-size:10px"></i> Evalúa AD / Entra ID + M365 + ServiceNow</div>
+            </div>
+          </label>
+          <label class="pm-proc-item">
+            <input type="checkbox" id="proc-medicos" onchange="derivarLicencias()">
+            <div class="pm-proc-body">
+              <div class="pm-proc-label">¿Habrá nuevos médicos?</div>
+              <div class="pm-proc-deriva"><i class="ti ti-arrow-right" style="font-size:10px"></i> Evalúa credencialización y accesos clínicos</div>
+            </div>
+          </label>
+          <label class="pm-proc-item">
+            <input type="checkbox" id="proc-imagen" onchange="derivarLicencias()">
+            <div class="pm-proc-body">
+              <div class="pm-proc-label">¿Habrá imagenología?</div>
+              <div class="pm-proc-deriva"><i class="ti ti-arrow-right" style="font-size:10px"></i> Evalúa PACS / RIS</div>
+            </div>
+          </label>
+          <label class="pm-proc-item">
+            <input type="checkbox" id="proc-telemedicina" onchange="derivarLicencias()">
+            <div class="pm-proc-body">
+              <div class="pm-proc-label">¿Habrá telemedicina o teleconsulta?</div>
+              <div class="pm-proc-deriva"><i class="ti ti-arrow-right" style="font-size:10px"></i> Evalúa plataforma de videoconsulta</div>
+            </div>
+          </label>
+          <label class="pm-proc-item">
+            <input type="checkbox" id="proc-mantenimiento" onchange="derivarLicencias()">
+            <div class="pm-proc-body">
+              <div class="pm-proc-label">¿Habrá gestión de mantenimiento?</div>
+              <div class="pm-proc-deriva"><i class="ti ti-arrow-right" style="font-size:10px"></i> Evalúa CMMS</div>
+            </div>
+          </label>
+        </div>
+      </div>
+
+      <div class="pm-card" id="bloque-g-apps-card" style="display:none">
+        <div class="pm-card-title"><i class="ti ti-apps" style="font-size:13px;color:var(--p-ll)"></i> Aplicativos derivados y tipo de licencia</div>
+        <p class="pm-hint" style="margin-bottom:12px">La herramienta derivó los siguientes aplicativos. Ajusta la cantidad si es necesario; el tipo de licencia puede cambiarse según contrato.</p>
+        <div id="bloque-g-apps"></div>
+
+        <!-- Campos ocultos para compatibilidad con calcReglas -->
+        <input type="hidden" id="campo-lic-tasy" value="0">
+        <input type="hidden" id="campo-lic-sap" value="0">
+        <input type="hidden" id="campo-lic-m365" value="0">
+      </div>
+
+      <div class="pm-nav">
+        <button class="pm-btn-prev" onclick="goBlock(-1)"><i class="ti ti-arrow-left"></i> Anterior</button>
+        <div class="pm-nav-info">Bloque 7 de 9</div>
+        <button class="pm-btn-next" onclick="goBlock(1)">Siguiente <i class="ti ti-arrow-right"></i></button>
+      </div>
+    </section>
+
+    <!-- BLOQUE H eliminado — Seguridad no forma parte del paramétrico -->
+
+    <!-- BLOQUE I — Reutilización / capacidad existente -->
+    <section class="pm-block" data-block="7" id="bloque-I">
+      <div class="pm-block-hdr">
+        <div class="pm-block-ico">I</div>
+        <div>
+          <div class="pm-block-title">Reutilización</div>
+          <div class="pm-block-desc">Captura el equipamiento existente que puede reaprovecharse. La herramienta calcula la necesidad incremental real: bruta menos lo utilizable.</div>
+        </div>
+      </div>
+
+      <div class="pm-card">
+        <div class="pm-card-title"><i class="ti ti-recycle" style="font-size:13px;color:var(--p-ll)"></i> Capacidad existente utilizable por categoría</div>
+        <p class="pm-hint" style="margin-bottom:14px">Ingresa cuántas unidades de cada categoría están disponibles para reutilizar. Solo considera equipo sin incidentes activos y con menos de 4 años de antigüedad.</p>
+        <div class="reutil-table-wrap">
+          <table class="reutil-table">
+            <thead>
+              <tr>
+                <th>Categoría</th>
+                <th style="text-align:center">Necesidad bruta</th>
+                <th style="text-align:center">Existente utilizable</th>
+                <th style="text-align:center">Necesidad incremental</th>
+              </tr>
+            </thead>
+            <tbody id="tabla-reutilizacion"></tbody>
+            <tfoot>
+              <tr>
+                <td colspan="3" style="text-align:right;font-weight:700;font-size:11.5px;color:var(--t2)">Ahorro estimado por reutilización</td>
+                <td style="text-align:center;font-weight:700;color:var(--green);font-size:13px" id="reutil-ahorro-total">$0</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+        <p class="pm-hint" style="margin-top:10px">El ahorro se refleja automáticamente en el presupuesto del Bloque J.</p>
+      </div>
+
+      <div class="pm-nav">
+        <button class="pm-btn-prev" onclick="goBlock(-1)"><i class="ti ti-arrow-left"></i> Anterior</button>
+        <div class="pm-nav-info">Bloque 8 de 9</div>
+        <button class="pm-btn-next" onclick="goBlock(1)">Siguiente <i class="ti ti-arrow-right"></i></button>
+      </div>
+    </section>
+
+    <!-- BLOQUE J — Excepciones -->
+    <section class="pm-block" data-block="8" id="bloque-J">
+      <div class="pm-block-hdr">
+        <div class="pm-block-ico">J</div>
+        <div>
+          <div class="pm-block-title">Excepciones y revisión manual</div>
+          <div class="pm-block-desc">Requerimientos que no encajan en las reglas estándar. El equipo TI los evaluará caso por caso.</div>
+        </div>
+      </div>
+
+      <div class="pm-card">
+        <div class="pm-card-title"><i class="ti ti-notes" style="font-size:13px;color:var(--p-ll)"></i> Necesidades fuera del estándar</div>
+        <div class="pm-chips" style="margin-bottom:14px">
+          <span class="pm-chip sel">Sí, hay excepciones</span>
+          <span class="pm-chip">No hay excepciones</span>
+        </div>
+        <div class="pm-field">
+          <label class="pm-label">Describe cada excepción con el mayor detalle posible</label>
+          <textarea class="pm-textarea" style="min-height:110px" placeholder="Ejemplo: integración con PACS/RIS, cámaras HD para teleconsulta, pantallas de monitoreo central en Urgencias, etc."></textarea>
+        </div>
+      </div>
+
+      <div class="pm-card">
+        <div class="pm-card-title"><i class="ti ti-report-money" style="font-size:13px;color:var(--p-ll)"></i> Presupuesto estimado</div>
+        <table class="pm-table">
+          <thead>
+            <tr><th>Rubro</th><th style="text-align:right">CAPEX (MXN)</th><th style="text-align:right">OPEX</th></tr>
+          </thead>
+          <tbody id="tabla-presupuesto-body">
+            <tr><td colspan="3" style="text-align:center;color:var(--t3);font-size:11px;padding:20px">Completa los bloques anteriores para ver el presupuesto calculado.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="pm-nav">
+        <button class="pm-btn-prev" onclick="goBlock(-1)"><i class="ti ti-arrow-left"></i> Anterior</button>
+        <div class="pm-nav-info">Formulario completo</div>
+        <button class="pm-btn-finish" onclick="abrirPreview()">
+          <i class="ti ti-eye"></i> Ver resultado
+        </button>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Panel derecho -->
+  <aside class="pm-panel">
+    <div class="pm-panel-hdr"><i class="ti ti-calculator" style="color:var(--p);margin-right:5px"></i> Equipamiento calculado</div>
+    <div class="pm-panel-sub">Se actualiza con los datos del formulario</div>
+    <div id="panel-body">
+      <div style="padding:20px 0;text-align:center;color:var(--t3);font-size:11px">
+        <i class="ti ti-info-circle" style="font-size:20px;display:block;margin-bottom:6px"></i>
+        Completa el Bloque B para ver los cálculos.
+      </div>
+    </div>
+  </aside>
+
+</div>
+
+<!-- Modal vista previa -->
+<div class="pv-overlay" id="pv-overlay">
+  <div class="pv-box" id="pv-box">
+
+    <div class="pv-hdr">
+      <div>
+        <div class="pv-hdr-eyebrow">Solicitud de equipamiento TI</div>
+        <div class="pv-hdr-title" id="pv-titulo">Hospital</div>
+        <div class="pv-hdr-meta" id="pv-meta">Generado</div>
+      </div>
+      <button class="pv-close" onclick="cerrarPreview()"><i class="ti ti-x"></i> Cerrar</button>
+    </div>
+
+    <div class="pv-kpis" id="pv-kpis"></div>
+
+    <div class="pv-body" id="pv-body"></div>
+
+    <div class="pv-footer">
+      <div class="pv-footer-note">Revisa los datos antes de exportar. El CSV se puede abrir en Excel.</div>
+      <div class="pv-export-btns">
+        <button class="pv-btn-pdf" onclick="exportarPDF()">
+          <i class="ti ti-file-type-pdf"></i> PDF
+        </button>
+        <button class="pv-btn-csv" onclick="exportarCSV()">
+          <i class="ti ti-table-export"></i> CSV
+        </button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script src="parametrico.js"></script>
+</body>
+</html>
