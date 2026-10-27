@@ -292,9 +292,9 @@
             <div class="spl-tool-ico ico-purple"><i class="ti ti-layout-dashboard"></i></div>
             <div class="spl-tool-txt">
               <div class="spl-tool-name">Portafolio Expansión TI 2026</div>
-              <div class="spl-tool-desc">Seguimiento de proyectos, avances y presupuesto por unidad</div>
+              <div class="spl-tool-desc" id="portafolio-desc">Seguimiento de proyectos, avances y presupuesto por unidad</div>
             </div>
-            <span class="spl-badge badge-p">Activo</span>
+            <span class="spl-badge badge-p" id="portafolio-badge">Activo</span>
             <i class="ti ti-chevron-right spl-tool-arr"></i>
           </div>
           <div class="spl-tool featured" onclick="splashSelectTool('parametrico')">
@@ -366,6 +366,21 @@
 </div>
 
 <script>
+// Actualiza el badge del Portafolio según si hay caché
+(function() {
+  try {
+    const meta = JSON.parse(localStorage.getItem('cm_excel_meta') || 'null');
+    if (meta) {
+      const d = new Date(meta.ts);
+      const ts = d.toLocaleDateString('es-MX',{day:'2-digit',month:'short'});
+      const badge = document.getElementById('portafolio-badge');
+      const desc  = document.getElementById('portafolio-desc');
+      if (badge) { badge.textContent = '📂 Cargado'; badge.style.background='#e8f5e9'; badge.style.color='#1A9E6A'; }
+      if (desc)  { desc.textContent = `Archivo cargado el ${ts} · clic para abrir`; }
+    }
+  } catch(e) {}
+})();
+
 const TOOLS_META = {
   portafolio: { name:'Portafolio Expansión TI 2026', ico:'ti-layout-dashboard', color:'#803F85', bg:'#F3EAF4' },
   parametrico: { name:'Paramétrico TI',              ico:'ti-calculator',        color:'#803F85', bg:'#F3EAF4' },
@@ -383,9 +398,22 @@ let _splashTool = null;
 
 function splashSelectTool(tool) {
   _splashTool = tool;
-  // Portafolio y Paramétrico: directo, sin selección de usuario
-  if (tool === 'portafolio') { document.getElementById('splash-file').click(); return; }
   if (tool === 'parametrico') { window.location.href = 'parametrico.html'; return; }
+  if (tool === 'portafolio') {
+    // Si hay caché, cargar directo sin pedir archivo
+    const hasCached = !!localStorage.getItem('cm_excel_b64');
+    if (hasCached) {
+      // Activar el dashboard con el caché
+      const splash = document.getElementById('splash');
+      if (splash) { splash.classList.add('hide'); setTimeout(() => { splash.style.display = 'none'; }, 500); }
+      // tryLoadCache se llama en DOMContentLoaded; si ya se llamó, lo re-ejecutamos
+      if (typeof App !== 'undefined') App.tryLoadCache();
+      return;
+    }
+    // Sin caché → pedir archivo
+    document.getElementById('splash-file').click();
+    return;
+  }
   // RPPs: sí necesita seleccionar PM
   const meta = TOOLS_META[tool];
   document.getElementById('spl-tool-preview').innerHTML = `
