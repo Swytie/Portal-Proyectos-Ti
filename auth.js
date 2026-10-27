@@ -212,4 +212,13 @@
   } else {
     document.addEventListener('DOMContentLoaded', mount);
   }
+
+  // Exponer logout global para que cualquier página lo llame
+  window.cmLogout = function() {
+    localStorage.removeItem(AUTH_KEY);
+    clearTimeout(_timer);
+    document.documentElement.style.visibility = 'hidden';
+    if (document.body) mount();
+    else document.addEventListener('DOMContentLoaded', mount);
+  };
 })();

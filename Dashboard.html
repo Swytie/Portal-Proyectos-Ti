@@ -464,9 +464,8 @@ function volverMenu() {
 }
 
 function cerrarSesion() {
-  localStorage.removeItem('cm_auth_ts');
-  // Forzar recarga limpia para que auth.js muestre el login
-  window.location.href = window.location.href.split('?')[0] + '?t=' + Date.now();
+  if (typeof window.cmLogout === 'function') window.cmLogout();
+  else { localStorage.removeItem('cm_auth_ts'); location.reload(); }
 }
 
 function splashBack() {
