@@ -438,18 +438,9 @@ function splashSelectTool(tool) {
   _splashTool = tool;
   if (tool === 'parametrico') { window.location.href = 'parametrico.html'; return; }
   if (tool === 'portafolio') {
-    // Si hay caché, cargar directo sin pedir archivo
-    const hasCached = !!localStorage.getItem('cm_excel_b64');
-    if (hasCached) {
-      // Activar el dashboard con el caché
-      const splash = document.getElementById('splash');
-      if (splash) { splash.classList.add('hide'); setTimeout(() => { splash.style.display = 'none'; }, 500); }
-      // tryLoadCache se llama en DOMContentLoaded; si ya se llamó, lo re-ejecutamos
-      if (typeof App !== 'undefined') App.tryLoadCache();
-      return;
-    }
-    // Sin caché → pedir archivo
-    document.getElementById('splash-file').click();
+    const splash = document.getElementById('splash');
+    if (splash) { splash.classList.add('hide'); setTimeout(() => { splash.style.display = 'none'; }, 500); }
+    if (typeof App !== 'undefined') App.tryLoadCache();
     return;
   }
   // RPPs: sí necesita seleccionar PM
@@ -474,7 +465,8 @@ function volverMenu() {
 
 function cerrarSesion() {
   localStorage.removeItem('cm_auth_ts');
-  location.reload();
+  // Forzar recarga limpia para que auth.js muestre el login
+  window.location.href = window.location.href.split('?')[0] + '?t=' + Date.now();
 }
 
 function splashBack() {
