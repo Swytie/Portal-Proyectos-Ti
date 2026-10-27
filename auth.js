@@ -4,25 +4,31 @@
 (function () {
   'use strict';
 
-  const SESSION_KEY  = 'cm_auth_ok';
+  const AUTH_KEY     = 'cm_auth_ts';   // localStorage: timestamp del último acceso
   const PASS         = 'CMti2026';
   const TIMEOUT_MS   = 20 * 60 * 1000; // 20 minutos
   let   _timer       = null;
 
+  function isAuthenticated() {
+    const ts = parseInt(localStorage.getItem(AUTH_KEY) || '0', 10);
+    return ts > 0 && (Date.now() - ts) < TIMEOUT_MS;
+  }
+
+  function touchAuth() {
+    localStorage.setItem(AUTH_KEY, String(Date.now()));
+  }
+
   // ── Timeout por inactividad ──────────────────────────────
   function resetTimer() {
+    touchAuth();
     clearTimeout(_timer);
     _timer = setTimeout(forceLogout, TIMEOUT_MS);
   }
 
   function forceLogout() {
-    sessionStorage.removeItem(SESSION_KEY);
-    // Limpia también el excel guardado para que no auto-cargue al re-login
-    // (opcional: comentar esta línea si se quiere conservar el archivo)
-    // localStorage.removeItem('cm_excel_cache');
-    mount();
-    // Ocultar contenido hasta que se autentique de nuevo
+    localStorage.removeItem(AUTH_KEY);
     document.documentElement.style.visibility = 'hidden';
+    mount();
   }
 
   function startActivityWatcher() {
@@ -32,8 +38,8 @@
     resetTimer();
   }
 
-  // ── Si ya está autenticado, solo vigilar inactividad ────
-  if (sessionStorage.getItem(SESSION_KEY) === '1') {
+  // ── Si ya está autenticado (sesión reciente), solo vigilar ──
+  if (isAuthenticated()) {
     document.addEventListener('DOMContentLoaded', startActivityWatcher);
     return;
   }
@@ -173,7 +179,7 @@
 
     function tryAuth() {
       if (input.value.trim() === PASS) {
-        sessionStorage.setItem(SESSION_KEY, '1');
+        touchAuth();
         overlay.style.opacity = '0';
         overlay.style.transition = 'opacity .4s ease';
         setTimeout(() => { overlay.remove(); startActivityWatcher(); }, 400);
