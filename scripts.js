@@ -259,18 +259,14 @@ const App = {
 
   clearCache() {
     if (!confirm('¿Limpiar el archivo guardado? Tendrás que cargarlo de nuevo.')) return;
+    localStorage.removeItem(LS_KEY_META);
     clearExcelCache();
     updateCacheIndicator();
+    App.destroyCharts();
     ALL = []; FILTERED = [];
     APP_INITIALIZED = false;
-    document.getElementById('tabs').innerHTML = '';
-    document.getElementById('main').innerHTML = `
-      <div class="empty-state">
-        <i class="ti ti-table-import empty-icon"></i>
-        <div class="empty-title">Carga el archivo Excel del Portafolio</div>
-        <div class="empty-sub">Haz clic en "Cargar Excel" para comenzar.</div>
-      </div>`;
-    document.getElementById('last-update').textContent = '';
+    App.renderEmpty();
+    if (typeof refrescarMenu === 'function') refrescarMenu();
   },
 
   scheduleRefresh() {
@@ -316,16 +312,16 @@ const App = {
 
   loadFile(event) {
     const file = event.target.files[0];
+    event.target.value = '';
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = e => {
+    reader.onload = async e => {
       const buffer = e.target.result;
-      saveExcelCache(buffer, file.name);
       App.parseExcel(buffer);
-      $('last-update').textContent = 'Cargado: ' + new Date().toLocaleTimeString('es-MX');
+      await saveExcelCache(buffer, file.name);
       updateCacheIndicator();
-      const splash = document.getElementById('splash');
-      if (splash) { splash.classList.add('hide'); setTimeout(() => { splash.style.display = 'none'; }, 500); }
+      if (typeof refrescarMenu === 'function') refrescarMenu();
+      if (typeof ocultarMenu === 'function') ocultarMenu();
     };
     reader.readAsArrayBuffer(file);
   },
@@ -334,14 +330,29 @@ const App = {
     const cached = await loadExcelCache();
     if (!cached) return false;
     App.parseExcel(cached.buffer);
-    const d = new Date(cached.meta.ts);
-    const ts = d.toLocaleDateString('es-MX',{day:'2-digit',month:'short'}) + ' ' + d.toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'});
-    const el = $('last-update');
-    if (el) el.textContent = 'Caché: ' + ts;
     updateCacheIndicator();
-    const splash = document.getElementById('splash');
-    if (splash) { splash.classList.add('hide'); setTimeout(() => { splash.style.display = 'none'; }, 500); }
     return true;
+  },
+
+  secHead(num, title, sub) {
+    return `<div class="dsec-hd"><span class="dsec-num">${num}</span><div><div class="dsec-title">${title}</div><div class="dsec-sub">${sub}</div></div></div>`;
+  },
+
+  goSec(id) {
+    const el = document.getElementById(id);
+    if (el) el.scrollIntoView({behavior:'smooth', block:'start'});
+  },
+
+  renderEmpty() {
+    $('tabs').innerHTML = '';
+    $('main').innerHTML = `
+      <div class="empty-card">
+        <div class="empty-card-ico"><i class="ti ti-file-spreadsheet"></i></div>
+        <div class="empty-card-title">Aún no hay un portafolio cargado</div>
+        <div class="empty-card-sub">Carga el archivo Excel del Portafolio Expansión TI. Quedará guardado en este equipo y se abrirá automáticamente la próxima vez.</div>
+        <button class="btn-primary btn-lg" onclick="document.getElementById('file-input').click()"><i class="ti ti-upload"></i> Cargar archivo Excel</button>
+        <div class="empty-card-note"><i class="ti ti-lock"></i> El archivo no sale de tu equipo: se procesa y guarda solo en este navegador.</div>
+      </div>`;
   },
 
   parseMACTI(wb) {
@@ -502,9 +513,24 @@ const App = {
   },
 
   renderGeneral() {
+    const meta = JSON.parse(localStorage.getItem(LS_KEY_META) || 'null');
+    const corte = meta ? new Date(meta.ts).toLocaleDateString('es-MX',{day:'2-digit',month:'long',year:'numeric'}) : '';
     $('main').innerHTML = `
-      <div class="toolbar">
-        <span class="filter-label"><i class="ti ti-filter"></i> Filtrar:</span>
+      <div class="dash-hero">
+        <div>
+          <div class="dash-eyebrow"><i class="ti ti-layout-dashboard"></i> Vista general</div>
+          <h1 class="dash-title">Portafolio Expansión TI 2026</h1>
+          <div class="dash-sub">${ALL.length} registros · ${[...new Set(ALL.map(d=>d.pm))].length} project managers${corte ? ' · Corte al ' + corte : ''}</div>
+        </div>
+        <nav class="dash-index">
+          <a onclick="App.goSec('sec-resumen')"><span>01</span> Resumen</a>
+          <a onclick="App.goSec('sec-inversion')"><span>02</span> Inversión</a>
+          <a onclick="App.goSec('sec-avance')"><span>03</span> Avance</a>
+          <a onclick="App.goSec('sec-detalle')"><span>04</span> Detalle</a>
+        </nav>
+      </div>
+      <div class="filterbar">
+        <span class="filter-label"><i class="ti ti-adjustments-horizontal"></i> Filtros</span>
         <select class="fsel" id="f-pm" onchange="App.filterGeneral()"><option value="">Todos los PMs</option></select>
         <select class="fsel" id="f-tipo" onchange="App.filterGeneral()">
           <option value="">Todos los tipos</option><option>Proyecto</option><option>Backlog</option>
@@ -524,8 +550,13 @@ const App = {
           <i class="ti ti-file-download"></i> Exportar MSR_R
         </button>
       </div>
-      <div class="kpi-section" id="kpis"></div>
-      <div class="status-strip" id="status-grid"></div>
+      <section class="dsec" id="sec-resumen">
+        ${App.secHead('01','Resumen ejecutivo','Indicadores clave del portafolio con los filtros aplicados')}
+        <div class="kpi-section" id="kpis"></div>
+        <div class="status-strip" id="status-grid"></div>
+      </section>
+      <section class="dsec" id="sec-inversion">
+      ${App.secHead('02','Inversión y distribución','Monto aprobado por PM, estado de los proyectos y tipo de esfuerzo')}
       <div class="charts-top">
         <div class="chart-card">
           <div class="chart-header"><i class="ti ti-chart-bar"></i><span class="chart-title">Monto Aprobado TI por PM</span><span class="chart-title-sub">MXN</span></div>
@@ -548,6 +579,9 @@ const App = {
           </div>
         </div>
       </div>
+      </section>
+      <section class="dsec" id="sec-avance">
+      ${App.secHead('03','Avance y fases','Distribución por fase y avance real contra el planeado por PM')}
       <div class="charts-bot">
         <div class="chart-card">
           <div class="chart-header"><i class="ti ti-list"></i><span class="chart-title">Proyectos por Fase</span></div>
@@ -558,6 +592,9 @@ const App = {
           <div class="chart-wrap-lg"><canvas id="ch-avance"></canvas></div>
         </div>
       </div>
+      </section>
+      <section class="dsec" id="sec-detalle">
+      ${App.secHead('04','Detalle de proyectos','Busca, filtra y ordena el listado completo')}
       <div class="table-card">
         <div class="table-header">
           <div class="table-header-left"><i class="ti ti-table"></i><span class="table-title">Detalle de Proyectos</span></div>
@@ -572,7 +609,8 @@ const App = {
         <div class="tbl-filter-bar" id="tbl-filter-bar"></div>
         <div class="table-scroll-top" id="tbl-scroll-top"><div class="table-scroll-top-inner" id="tbl-scroll-top-inner"></div></div>
         <div class="table-scroll" id="tbl-scroll"><div id="tbl"></div></div>
-      </div>`;
+      </div>
+      </section>`;
     const pms = [...new Set(ALL.map(d => d.pm))];
     const unidades = uniqueFold(ALL.map(d => d._unidad).filter(Boolean)).sort();
     const tipoProy = uniqueFold(ALL.map(d => d._tipo_proy).filter(Boolean)).sort();
@@ -913,11 +951,16 @@ const App = {
           <i class="ti ti-file-download"></i> Exportar MSR_R
         </button>
       </div>
-      <div class="chart-card" style="margin-bottom:10px">
+      <section class="dsec">
+      ${App.secHead('01','Inversión por unidad','Monto aprobado TI de los proyectos de ' + pm)}
+      <div class="chart-card">
         <div class="chart-header"><i class="ti ti-chart-bar"></i><span class="chart-title">Monto por Unidad</span><span class="chart-title-sub">MXN</span></div>
-        <div class="chart-wrap"><canvas id="ch-pm"></canvas></div>
+        <div class="chart-wrap" style="height:180px"><canvas id="ch-pm"></canvas></div>
       </div>
-      <div class="charts-bot" style="margin-bottom:10px">
+      </section>
+      <section class="dsec">
+      ${App.secHead('02','Estado y fase','Situación actual de los proyectos asignados')}
+      <div class="charts-bot" style="margin-bottom:0">
         <div class="chart-card">
           <div class="chart-header"><i class="ti ti-chart-donut"></i><span class="chart-title">Por Estado</span></div>
           <div class="chart-wrap" style="display:flex;align-items:center;gap:12px">
@@ -933,6 +976,9 @@ const App = {
           </div>
         </div>
       </div>
+      </section>
+      <section class="dsec">
+      ${App.secHead('03','Proyectos','Listado completo con filtros y búsqueda')}
       <div class="table-card">
         <div class="table-header">
           <div class="table-header-left"><i class="ti ti-table"></i><span class="table-title">Proyectos de ${pm}</span></div>
@@ -947,7 +993,8 @@ const App = {
         <div class="tbl-filter-bar" id="tbl-filter-bar"></div>
         <div class="table-scroll-top" id="tbl-scroll-top"><div class="table-scroll-top-inner" id="tbl-scroll-top-inner"></div></div>
         <div class="table-scroll" id="tbl-scroll"><div id="tbl"></div></div>
-      </div>`;
+      </div>
+      </section>`;
     FILTERED = data;
     App.renderChartsPM(data, color);
     App.renderTblFilters(data);
@@ -1241,8 +1288,7 @@ const App = {
 
 };
 
-// ── Auto-carga desde caché al abrir la página ─────────────
-document.addEventListener('DOMContentLoaded', () => {
-  App.tryLoadCache();
-});
+// Precarga el portafolio guardado en segundo plano; el menú sigue visible
+App.renderEmpty();
+App.tryLoadCache();
 

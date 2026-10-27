@@ -1,224 +1,202 @@
-// ─────────────────────────────────────────────────────────────
-// auth.js — Protección básica + timeout 20 min · Ecosistema TI CM
-// ─────────────────────────────────────────────────────────────
+// auth.js — Acceso al Ecosistema TI · CHRISTUS MUGUERZA
 (function () {
   'use strict';
 
-  const AUTH_KEY     = 'cm_auth_ts';   // localStorage: timestamp del último acceso
-  const PASS         = 'CMti2026';
-  const TIMEOUT_MS   = 20 * 60 * 1000; // 20 minutos
-  let   _timer       = null;
+  const AUTH_KEY   = 'cm_auth_ts';
+  const PASS       = 'CMti2026';
+  const TIMEOUT_MS = 20 * 60 * 1000;
+  let   _timer     = null;
 
-  function isAuthenticated() {
+  const isAuthenticated = () => {
     const ts = parseInt(localStorage.getItem(AUTH_KEY) || '0', 10);
     return ts > 0 && (Date.now() - ts) < TIMEOUT_MS;
-  }
+  };
+  const touchAuth = () => localStorage.setItem(AUTH_KEY, String(Date.now()));
 
-  function touchAuth() {
-    localStorage.setItem(AUTH_KEY, String(Date.now()));
-  }
-
-  // ── Timeout por inactividad ──────────────────────────────
   function resetTimer() {
     touchAuth();
     clearTimeout(_timer);
-    _timer = setTimeout(forceLogout, TIMEOUT_MS);
+    _timer = setTimeout(logout, TIMEOUT_MS);
   }
 
-  function forceLogout() {
-    localStorage.removeItem(AUTH_KEY);
-    document.documentElement.style.visibility = 'hidden';
-    mount();
-  }
-
+  let _watching = false;
   function startActivityWatcher() {
-    ['mousemove','mousedown','keydown','touchstart','scroll','click'].forEach(evt => {
-      document.addEventListener(evt, resetTimer, { passive: true });
-    });
+    if (!_watching) {
+      ['mousemove','mousedown','keydown','touchstart','scroll','click'].forEach(evt =>
+        document.addEventListener(evt, resetTimer, { passive: true }));
+      _watching = true;
+    }
     resetTimer();
   }
 
-  // Exponer logout global ANTES del return, para que siempre esté disponible
-  window.cmLogout = function() {
-    localStorage.removeItem(AUTH_KEY);
+  function stopActivityWatcher() {
     clearTimeout(_timer);
-    document.documentElement.style.visibility = 'hidden';
-    if (document.body) mount();
-    else document.addEventListener('DOMContentLoaded', mount);
-  };
-
-  // ── Si ya está autenticado (sesión reciente), solo vigilar ──
-  if (isAuthenticated()) {
-    document.addEventListener('DOMContentLoaded', startActivityWatcher);
-    return;
+    if (!_watching) return;
+    ['mousemove','mousedown','keydown','touchstart','scroll','click'].forEach(evt =>
+      document.removeEventListener(evt, resetTimer));
+    _watching = false;
   }
 
-  document.documentElement.style.visibility = 'hidden';
+  function logout() {
+    localStorage.removeItem(AUTH_KEY);
+    stopActivityWatcher();
+    if (typeof window.onCmLogout === 'function') window.onCmLogout();
+    whenBody(mount);
+  }
+  window.cmLogout = logout;
 
-  // Asegurar que Tabler Icons esté disponible para los iconos del login
-  if (!document.querySelector('link[href*="tabler-icons"]')) {
-    const lnk = document.createElement('link');
-    lnk.rel = 'stylesheet';
-    lnk.href = 'https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css';
-    document.head.appendChild(lnk);
+  function whenBody(fn) {
+    if (document.body) fn();
+    else document.addEventListener('DOMContentLoaded', fn);
   }
 
-  // ── UI del login ─────────────────────────────────────────
+  function ensureAssets() {
+    const head = document.head || document.documentElement;
+    if (!document.querySelector('link[href*="tabler-icons"]')) {
+      const l = document.createElement('link');
+      l.rel = 'stylesheet';
+      l.href = 'https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css';
+      head.appendChild(l);
+    }
+    if (!document.querySelector('link[href*="DM+Sans"]')) {
+      const f = document.createElement('link');
+      f.rel = 'stylesheet';
+      f.href = 'https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap';
+      head.appendChild(f);
+    }
+  }
+
+  const CSS = `
+    #auth-overlay{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px;
+      font-family:'DM Sans',system-ui,sans-serif;background:linear-gradient(135deg,#170818 0%,#2a0f30 45%,#3a1a40 75%,#1c0b20 100%);overflow:auto;transition:opacity .35s ease}
+    #auth-overlay::before{content:'';position:absolute;inset:0;pointer-events:none;
+      background-image:linear-gradient(rgba(188,139,191,.06) 1px,transparent 1px),linear-gradient(90deg,rgba(188,139,191,.06) 1px,transparent 1px);background-size:56px 56px}
+    @keyframes auIn{from{opacity:0;transform:translateY(18px) scale(.985)}to{opacity:1;transform:none}}
+    @keyframes auShake{0%,100%{transform:translateX(0)}20%{transform:translateX(-7px)}40%{transform:translateX(7px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
+    .au-card{position:relative;display:grid;grid-template-columns:.92fr 1.08fr;width:min(900px,100%);min-height:540px;border-radius:22px;overflow:hidden;
+      box-shadow:0 40px 90px rgba(0,0,0,.55),0 0 0 1px rgba(255,255,255,.06);animation:auIn .5s cubic-bezier(.22,1,.36,1) both}
+    .au-card.shake .au-form-inner{animation:auShake .35s ease}
+    .au-brand{position:relative;background:linear-gradient(160deg,#4a2150 0%,#3a1a40 55%,#2b1230 100%);color:#fff;padding:44px 40px;display:flex;flex-direction:column;overflow:hidden}
+    .au-brand::after{content:'';position:absolute;width:340px;height:340px;border-radius:50%;border:1px solid rgba(255,255,255,.07);right:-150px;bottom:-130px}
+    .au-brand::before{content:'';position:absolute;width:220px;height:220px;border-radius:50%;border:1px solid rgba(255,255,255,.06);right:-60px;bottom:-40px}
+    .au-logo{background:#fff;border-radius:14px;padding:10px 16px;align-self:flex-start;box-shadow:0 10px 26px rgba(0,0,0,.25)}
+    .au-logo img{height:46px;width:auto;display:block}
+    .au-logo-fb{display:none;font-size:20px;font-weight:800;color:#5C2B60;padding:4px 6px}
+    .au-dept{margin-top:34px;font-size:10.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.5)}
+    .au-title{font-size:32px;font-weight:800;letter-spacing:-.02em;margin-top:6px;line-height:1.1}
+    .au-sub{font-size:13px;color:rgba(255,255,255,.55);margin-top:6px}
+    .au-feats{list-style:none;margin:30px 0 0;padding:0;display:flex;flex-direction:column;gap:12px}
+    .au-feats li{display:flex;align-items:center;gap:12px;font-size:13px;color:rgba(255,255,255,.82)}
+    .au-feats .ti{width:32px;height:32px;border-radius:9px;background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;font-size:16px;color:#E3C6E5;flex-shrink:0}
+    .au-ver{margin-top:auto;padding-top:28px;font-size:11px;color:rgba(255,255,255,.3)}
+    .au-form{background:#fff;display:flex;align-items:center;justify-content:center;padding:48px 52px}
+    .au-form-inner{width:100%;max-width:340px}
+    .au-eyebrow{display:inline-flex;align-items:center;gap:6px;font-size:10.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#803F85;background:#F3EAF4;border-radius:999px;padding:5px 10px}
+    .au-h1{font-size:26px;font-weight:800;color:#1E0F20;margin:16px 0 6px;letter-spacing:-.02em}
+    .au-p{font-size:13px;color:#6B4F6E;line-height:1.55;margin:0 0 26px}
+    .au-label{display:block;font-size:11.5px;font-weight:700;color:#1E0F20;margin-bottom:7px}
+    .au-field{position:relative}
+    .au-field>.ti{position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:17px;color:#A889AB;pointer-events:none}
+    #auth-input{width:100%;box-sizing:border-box;height:48px;padding:0 46px 0 42px;border-radius:12px;border:1.5px solid #E8DCE9;background:#FBF8FB;
+      font-family:inherit;font-size:14px;color:#1E0F20;outline:none;transition:border-color .2s,box-shadow .2s,background .2s}
+    #auth-input:focus{border-color:#803F85;background:#fff;box-shadow:0 0 0 4px rgba(128,63,133,.12)}
+    #auth-input.err{border-color:#D94040;box-shadow:0 0 0 4px rgba(217,64,64,.1)}
+    .au-eye{position:absolute;right:8px;top:50%;transform:translateY(-50%);width:34px;height:34px;border:none;background:none;border-radius:8px;cursor:pointer;color:#A889AB;font-size:18px;display:flex;align-items:center;justify-content:center}
+    .au-eye:hover{background:#F3EAF4;color:#803F85}
+    #auth-err{min-height:18px;margin-top:8px;font-size:12px;color:#D94040;display:flex;align-items:center;gap:5px}
+    #auth-btn{width:100%;height:48px;margin-top:8px;border:none;border-radius:12px;cursor:pointer;font-family:inherit;font-size:14px;font-weight:700;color:#fff;
+      background:linear-gradient(135deg,#8E4893,#5C2B60);box-shadow:0 10px 24px rgba(92,43,96,.32);display:flex;align-items:center;justify-content:center;gap:8px;transition:transform .1s,box-shadow .2s,filter .2s}
+    #auth-btn:hover{filter:brightness(1.06);box-shadow:0 14px 30px rgba(92,43,96,.4)}
+    #auth-btn:active{transform:scale(.985)}
+    .au-note{display:flex;align-items:center;gap:7px;margin-top:18px;font-size:11.5px;color:#A889AB}
+    .au-foot{margin-top:30px;padding-top:16px;border-top:1px solid #F0E6F1;font-size:11px;color:#BC8BBF;display:flex;align-items:center;gap:6px}
+    @media (max-width:760px){.au-card{grid-template-columns:1fr;min-height:0}.au-brand{display:none}.au-form{padding:40px 28px}}
+  `;
+
   function mount() {
-    // Quitar overlay anterior si existe
+    ensureAssets();
     const old = document.getElementById('auth-overlay');
     if (old) old.remove();
 
     const overlay = document.createElement('div');
     overlay.id = 'auth-overlay';
     overlay.innerHTML = `
-      <style>
-        @keyframes authFadeIn {
-          from { opacity:0; transform:translateY(24px) scale(.97); }
-          to   { opacity:1; transform:translateY(0) scale(1); }
-        }
-        @keyframes authShake {
-          0%,100%{transform:translateX(0)}
-          20%{transform:translateX(-8px)}
-          40%{transform:translateX(8px)}
-          60%{transform:translateX(-5px)}
-          80%{transform:translateX(5px)}
-        }
-        @keyframes orbFloat {
-          0%,100%{transform:translate(0,0) scale(1)}
-          33%{transform:translate(20px,-15px) scale(1.04)}
-          66%{transform:translate(-12px,18px) scale(.97)}
-        }
-        #auth-overlay {
-          position:fixed;inset:0;z-index:99999;
-          background:#0f0614;
-          display:flex;align-items:center;justify-content:center;
-          font-family:'Inter','DM Sans',system-ui,sans-serif;
-          overflow:hidden;
-        }
-        .auth-bg-grid {
-          position:absolute;inset:0;pointer-events:none;
-          background-image:
-            linear-gradient(rgba(128,63,133,.07) 1px,transparent 1px),
-            linear-gradient(90deg,rgba(128,63,133,.07) 1px,transparent 1px);
-          background-size:52px 52px;
-        }
-        .auth-orb {
-          position:absolute;border-radius:50%;pointer-events:none;
-          animation:orbFloat 9s ease-in-out infinite;filter:blur(70px);
-        }
-        .auth-orb-1{width:480px;height:480px;background:radial-gradient(circle,rgba(92,43,96,.45) 0%,transparent 70%);top:-15%;left:-12%;animation-delay:0s}
-        .auth-orb-2{width:360px;height:360px;background:radial-gradient(circle,rgba(37,99,235,.18) 0%,transparent 70%);bottom:-10%;right:-8%;animation-delay:-4s}
-        .auth-orb-3{width:240px;height:240px;background:radial-gradient(circle,rgba(26,158,106,.12) 0%,transparent 70%);top:55%;left:35%;animation-delay:-7s}
-        #auth-card {
-          position:relative;z-index:1;
-          width:380px;max-width:calc(100vw - 32px);
-          background:rgba(30,12,36,.88);
-          border:1px solid rgba(255,255,255,.09);
-          border-radius:20px;padding:44px 40px 36px;
-          box-shadow:0 32px 80px rgba(0,0,0,.6),0 0 0 1px rgba(255,255,255,.04);
-          backdrop-filter:blur(18px);
-          animation:authFadeIn .55s cubic-bezier(.22,1,.36,1) forwards;
-          text-align:center;
-        }
-        .auth-brand{display:inline-flex;align-items:center;gap:10px;margin-bottom:28px}
-        .auth-logo{width:46px;height:46px;border-radius:13px;background:linear-gradient(135deg,#7B3F80,#5C2B60);display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:900;color:#fff;letter-spacing:-.5px;box-shadow:0 8px 20px rgba(92,43,96,.5);flex-shrink:0}
-        .auth-brand-name{font-size:13px;font-weight:800;color:#fff;line-height:1.1;letter-spacing:.01em;text-align:left}
-        .auth-brand-sub{font-size:10.5px;color:rgba(255,255,255,.35);letter-spacing:.04em;text-transform:uppercase;text-align:left}
-        .auth-divider{height:1px;background:rgba(255,255,255,.07);margin:0 -40px 28px}
-        .auth-icon-wrap{width:60px;height:60px;border-radius:16px;background:rgba(92,43,96,.25);border:1px solid rgba(128,63,133,.3);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:26px;color:#B07CC6}
-        .auth-title{font-size:18px;font-weight:800;color:#fff;margin-bottom:6px;line-height:1.2}
-        .auth-subtitle{font-size:12.5px;color:rgba(255,255,255,.38);margin-bottom:28px}
-        .auth-input-wrap{position:relative;margin-bottom:14px}
-        #auth-input{width:100%;box-sizing:border-box;padding:13px 44px 13px 16px;border-radius:11px;border:1.5px solid rgba(255,255,255,.12);background:rgba(255,255,255,.05);color:#fff;font-size:14px;font-family:inherit;outline:none;letter-spacing:3px;transition:border-color .2s,background .2s}
-        #auth-input::placeholder{letter-spacing:0;color:rgba(255,255,255,.25);font-size:13px}
-        #auth-input:focus{border-color:rgba(128,63,133,.7);background:rgba(255,255,255,.08)}
-        .auth-eye{position:absolute;right:13px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:rgba(255,255,255,.3);font-size:16px;padding:2px;line-height:1;transition:color .2s}
-        .auth-eye:hover{color:rgba(255,255,255,.6)}
-        #auth-btn{width:100%;padding:13px;background:linear-gradient(135deg,#7B3F80,#5C2B60);color:#fff;border:none;border-radius:11px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;letter-spacing:.04em;box-shadow:0 8px 20px rgba(92,43,96,.4);transition:opacity .15s,transform .1s,box-shadow .2s}
-        #auth-btn:hover{opacity:.92;box-shadow:0 12px 28px rgba(92,43,96,.5)}
-        #auth-btn:active{transform:scale(.98)}
-        #auth-err{font-size:11.5px;color:#f87171;margin-top:12px;min-height:16px}
-        .auth-err-shake{animation:authShake .35s ease}
-        .auth-timeout-note{font-size:11px;color:rgba(255,255,255,.22);margin-top:10px}
-        .auth-footer{margin-top:24px;padding-top:16px;border-top:1px solid rgba(255,255,255,.06);display:flex;align-items:center;justify-content:center;gap:6px;font-size:10.5px;color:rgba(255,255,255,.18)}
-        .auth-footer-dot{width:3px;height:3px;border-radius:50%;background:rgba(255,255,255,.18)}
-      </style>
-
-      <div class="auth-bg-grid"></div>
-      <div class="auth-orb auth-orb-1"></div>
-      <div class="auth-orb auth-orb-2"></div>
-      <div class="auth-orb auth-orb-3"></div>
-
-      <div id="auth-card">
-        <div class="auth-brand">
-          <div class="auth-logo">CM</div>
-          <div>
-            <div class="auth-brand-name">CHRISTUS MUGUERZA</div>
-            <div class="auth-brand-sub">Ecosistema TI</div>
+      <style>${CSS}</style>
+      <div class="au-card" id="au-card">
+        <aside class="au-brand">
+          <div class="au-logo">
+            <img src="logo.jpg" alt="CHRISTUS MUGUERZA" onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
+            <div class="au-logo-fb">CM</div>
           </div>
-        </div>
-        <div class="auth-divider"></div>
-        <div class="auth-icon-wrap"><i class="ti ti-lock"></i></div>
-        <div class="auth-title">Acceso restringido</div>
-        <div class="auth-subtitle">Ingresa la contraseña para continuar</div>
-        <div class="auth-input-wrap">
-          <input id="auth-input" type="password" placeholder="Contraseña de acceso" autocomplete="current-password">
-          <button class="auth-eye" id="auth-eye" type="button" title="Mostrar/ocultar"><i class="ti ti-eye"></i></button>
-        </div>
-        <button id="auth-btn">Ingresar</button>
-        <div id="auth-err"></div>
-        <div class="auth-timeout-note">⏱ La sesión expira tras 20 min de inactividad</div>
-        <div class="auth-footer">
-          <span>Uso interno</span>
-          <div class="auth-footer-dot"></div>
-          <span>Dirección de TI</span>
-          <div class="auth-footer-dot"></div>
-          <span>2026</span>
-        </div>
+          <div class="au-dept">Dirección de TI · GSEE</div>
+          <div class="au-title">Ecosistema TI</div>
+          <div class="au-sub">CHRISTUS MUGUERZA · Sistema de Salud</div>
+          <ul class="au-feats">
+            <li><i class="ti ti-layout-dashboard"></i>Portafolio de proyectos 2026</li>
+            <li><i class="ti ti-calculator"></i>Paramétricos de equipamiento TI</li>
+            <li><i class="ti ti-report-money"></i>CAPEX y requisiciones (RPPs)</li>
+          </ul>
+          <div class="au-ver">v3.0 · 2026</div>
+        </aside>
+        <section class="au-form">
+          <div class="au-form-inner">
+            <span class="au-eyebrow"><i class="ti ti-shield-lock"></i> Acceso seguro</span>
+            <h1 class="au-h1">Iniciar sesión</h1>
+            <p class="au-p">Ingresa la contraseña de acceso proporcionada por la Dirección de TI.</p>
+            <label class="au-label" for="auth-input">Contraseña</label>
+            <div class="au-field">
+              <i class="ti ti-lock"></i>
+              <input id="auth-input" type="password" placeholder="••••••••" autocomplete="current-password">
+              <button class="au-eye" id="auth-eye" type="button" aria-label="Mostrar contraseña"><i class="ti ti-eye"></i></button>
+            </div>
+            <div id="auth-err"></div>
+            <button id="auth-btn" type="button">Ingresar <i class="ti ti-arrow-right"></i></button>
+            <div class="au-note"><i class="ti ti-clock-hour-4"></i> La sesión se cierra tras 20 minutos sin actividad.</div>
+            <div class="au-foot"><i class="ti ti-building-hospital"></i> Uso interno · CHRISTUS MUGUERZA</div>
+          </div>
+        </section>
       </div>`;
 
     document.body.appendChild(overlay);
     document.documentElement.style.visibility = 'visible';
 
-    const input = document.getElementById('auth-input');
-    const btn   = document.getElementById('auth-btn');
-    const eye   = document.getElementById('auth-eye');
-    const err   = document.getElementById('auth-err');
-
+    const card  = overlay.querySelector('#au-card');
+    const input = overlay.querySelector('#auth-input');
+    const btn   = overlay.querySelector('#auth-btn');
+    const eye   = overlay.querySelector('#auth-eye');
+    const err   = overlay.querySelector('#auth-err');
     input.focus();
 
     eye.addEventListener('click', () => {
       const show = input.type === 'password';
       input.type = show ? 'text' : 'password';
-      eye.innerHTML = show ? '<i class="ti ti-eye-off"></i>' : '<i class="ti ti-eye"></i>';
+      eye.innerHTML = `<i class="ti ${show ? 'ti-eye-off' : 'ti-eye'}"></i>`;
+      input.focus();
     });
+
+    input.addEventListener('input', () => { input.classList.remove('err'); err.textContent = ''; });
 
     function tryAuth() {
       if (input.value.trim() === PASS) {
-        touchAuth();
+        startActivityWatcher();
         overlay.style.opacity = '0';
-        overlay.style.transition = 'opacity .4s ease';
-        setTimeout(() => { overlay.remove(); startActivityWatcher(); }, 400);
-      } else {
-        err.textContent = 'Contraseña incorrecta. Intenta de nuevo.';
-        const card = document.getElementById('auth-card');
-        card.classList.remove('auth-err-shake');
-        void card.offsetWidth;
-        card.classList.add('auth-err-shake');
-        input.value = '';
-        input.focus();
-        setTimeout(() => { err.textContent = ''; }, 3000);
+        setTimeout(() => overlay.remove(), 350);
+        return;
       }
+      err.innerHTML = '<i class="ti ti-alert-circle"></i> Contraseña incorrecta. Intenta de nuevo.';
+      input.classList.add('err');
+      card.classList.remove('shake'); void card.offsetWidth; card.classList.add('shake');
+      input.select();
     }
 
     btn.addEventListener('click', tryAuth);
     input.addEventListener('keydown', e => { if (e.key === 'Enter') tryAuth(); });
   }
 
-  if (document.body) {
-    mount();
-  } else {
-    document.addEventListener('DOMContentLoaded', mount);
+  if (isAuthenticated()) {
+    whenBody(startActivityWatcher);
+    return;
   }
+  document.documentElement.style.visibility = 'hidden';
+  whenBody(mount);
 })();
