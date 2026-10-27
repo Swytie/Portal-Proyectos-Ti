@@ -241,6 +241,8 @@ const App = {
     reader.onload = e => {
       App.parseExcel(e.target.result);
       $('last-update').textContent = 'Cargado: ' + new Date().toLocaleTimeString('es-MX');
+      const splash = document.getElementById('splash');
+      if (splash) { splash.classList.add('hide'); setTimeout(() => { splash.style.display = 'none'; }, 500); }
     };
     reader.readAsArrayBuffer(file);
   },
