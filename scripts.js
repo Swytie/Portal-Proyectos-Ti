@@ -587,6 +587,7 @@ function renderView() {
         <div class="hero-sub"><span><i class="ti ti-folders"></i>${rows.length} registros</span><span><i class="ti ti-building-hospital"></i>${uniq(rows.map(r => r.unidad).filter(Boolean)).length} unidades</span><span><i class="ti ti-file-spreadsheet"></i>Hoja "${esc(rows[0] ? rows[0].sheet : S.view)}"</span></div>
       </div>
       <div class="hero-actions">
+        <button class="btn btn-soft" data-action="export-all" title="Solo los proyectos de ${esc(S.view)}, en una hoja con el formato de su pestaña"><i class="ti ti-table-export"></i> Descargar consolidado</button>
         <button class="btn btn-primary" data-action="export" title="Descargar en formato MSR_R con los filtros aplicados"><i class="ti ti-file-download"></i> Exportar MSR_R</button>
       </div>
     </div>`;
@@ -1240,11 +1241,14 @@ function buildConsolidadoBasic(d, records, cols, perSheet) {
 async function exportConsolidado() {
   const d = S.data;
   if (!d || !d.wb || !d.buffer) return toast('Vuelve a cargar el Excel para generar el consolidado.', 'bad');
-  const sheets = d.sheets.filter(s => (s.status === 'ok' || s.status === 'auto') && s.rows > 0);
+  // En la pestaña de un PM se descargan solo sus proyectos; en la vista general, todos
+  const onlyPm = S.view === 'general' ? null : S.view;
+  const sheets = d.sheets.filter(s => (s.status === 'ok' || s.status === 'auto') && s.rows > 0 && (!onlyPm || s.pm === onlyPm));
+  if (!sheets.length) return toast('Este PM no tiene proyectos para descargar.', 'bad');
   setLoading(true, 'Generando consolidado…');
   try {
     if (!window.ExcelJS) await loadScript('vendor/exceljs.min.js');
-    const records = d.records.slice().sort((a, b) => a.order - b.order);
+    const records = d.records.filter(r => !onlyPm || r.pm === onlyPm).sort((a, b) => a.order - b.order);
     const { cols, perSheet, hdrRow } = consolidadoColumns(d.wb, sheets, records);
     let out;
     try { out = await buildConsolidadoStyled(d, sheets, records, cols, perSheet, hdrRow); }
@@ -1254,10 +1258,10 @@ async function exportConsolidado() {
     const a = document.createElement('a');
     const now = new Date();
     a.href = url;
-    a.download = `Portafolio_TI_Consolidado_${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}.xlsx`;
+    a.download = `Portafolio_TI_Consolidado_${onlyPm ? onlyPm.replace(/\s+/g, '_') + '_' : ''}${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}.xlsx`;
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 2000);
-    toast(`Consolidado generado: ${records.length} proyectos de ${sheets.length} pestañas en una sola hoja.`);
+    toast(onlyPm ? `Consolidado de ${onlyPm}: ${records.length} proyectos.` : `Consolidado generado: ${records.length} proyectos de ${sheets.length} pestañas en una sola hoja.`);
   } catch (e) {
     console.error(e);
     toast('No se pudo generar el consolidado.', 'bad');
