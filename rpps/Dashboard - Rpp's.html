@@ -1,0 +1,3022 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none'">
+<meta name="referrer" content="no-referrer">
+<meta name="robots" content="noindex, nofollow">
+<title>CAPEX 2027 — RPPs · CHRISTUS MUGUERZA</title>
+<script src="../auth.js"></script>
+<link rel="stylesheet" href="../vendor/tabler/tabler-icons.min.css">
+<script src="../vendor/xlsx-0.20.3.full.min.js"></script>
+<script src="../vendor/chart.umd.js"></script>
+<script src="../vendor/jszip.min.js"></script>
+<script src="../vendor/lz-string.min.js"></script>
+<script>
+if (window.Chart) {
+  Chart.defaults.font.family = '"DM Sans", system-ui, sans-serif';
+  Chart.defaults.font.size = 12;
+  Chart.defaults.color = '#85748A';
+  Object.assign(Chart.defaults.plugins.tooltip, { backgroundColor: '#1C0B20', padding: 10, cornerRadius: 10, titleFont: { weight: '700' }, boxPadding: 4 });
+  if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) Chart.defaults.animation = false;
+}
+</script>
+<style>
+@font-face { font-family: 'DM Sans'; font-weight: 400; font-display: swap; src: url('../vendor/fonts/dm-sans-latin-400-normal.woff2') format('woff2'); }
+@font-face { font-family: 'DM Sans'; font-weight: 500; font-display: swap; src: url('../vendor/fonts/dm-sans-latin-500-normal.woff2') format('woff2'); }
+@font-face { font-family: 'DM Sans'; font-weight: 600; font-display: swap; src: url('../vendor/fonts/dm-sans-latin-600-normal.woff2') format('woff2'); }
+@font-face { font-family: 'DM Sans'; font-weight: 700; font-display: swap; src: url('../vendor/fonts/dm-sans-latin-700-normal.woff2') format('woff2'); }
+@font-face { font-family: 'DM Sans'; font-weight: 800; font-display: swap; src: url('../vendor/fonts/dm-sans-latin-800-normal.woff2') format('woff2'); }
+
+:root {
+  --p:        #803F85;
+  --p-l:      #9E5EA3;
+  --p-ll:     #BC8BBF;
+  --p-pale:   #F3EAF4;
+  --p-dark:   #5C2B60;
+  --green:    #1A9E6A;
+  --amber:    #C8A200;
+  --red:      #D94040;
+  --blue:     #2563EB;
+  --bg:       #F7F3F8;
+  --card:     #fff;
+  --border:   #E8DCE9;
+  --t1:       #1E0F20;
+  --t2:       #6B4F6E;
+  --t3:       #A889AB;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--t1); }
+
+.screen { display: none; min-height: 100vh; }
+.screen.active { display: flex; flex-direction: column; }
+#screen-ecosistema-upload.active { flex-direction: row; align-items: center; justify-content: center; min-height: 100vh; }
+
+/* ===================== SPLASH (login / upload) ===================== */
+.splash-card {
+  display: flex;
+  width: 100%; min-height: 100vh;
+  overflow: hidden;
+  animation: splashIn .6s ease forwards; opacity: 0;
+}
+@keyframes splashIn {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.splash-panel-l {
+  flex: 0 0 42%;
+  background: var(--p-dark);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: clamp(1.5rem, 4vw, 3.5rem) clamp(1.5rem, 3vw, 3rem);
+  position: relative; overflow: hidden;
+}
+.splash-panel-l::after {
+  content: ''; position: absolute;
+  top: -10%; right: -8%;
+  width: clamp(120px, 20vw, 260px); height: clamp(120px, 20vw, 260px);
+  border-radius: 50%; background: rgba(255,255,255,.05);
+}
+.splash-panel-l::before {
+  content: ''; position: absolute;
+  bottom: -8%; left: -8%;
+  width: clamp(100px, 16vw, 200px); height: clamp(100px, 16vw, 200px);
+  border-radius: 50%; background: rgba(255,255,255,.05);
+}
+.splash-logo-box {
+  background: #fff; border-radius: clamp(8px, 1vw, 14px);
+  padding: clamp(8px, 1vw, 14px) clamp(12px, 1.5vw, 20px);
+  margin-bottom: clamp(1rem, 2.5vh, 2rem);
+  position: relative; z-index: 1;
+}
+.splash-logo-box img { height: clamp(80px, 6vh, 72px); width: auto; display: block; }
+.splash-logo-cm {
+  background: #fff; border-radius: 12px;
+  padding: 10px 20px; margin-bottom: 1.5rem;
+  font-size: clamp(16px, 2vw, 24px);
+  font-weight: 700; color: var(--p-dark);
+  position: relative; z-index: 1;
+}
+.splash-l-area {
+  font-size: clamp(9px, .9vw, 11px); font-weight: 600;
+  color: rgba(255,255,255,.5);
+  text-transform: uppercase; letter-spacing: .8px;
+  margin-bottom: clamp(4px, .8vh, 8px);
+  text-align: center; position: relative; z-index: 1;
+}
+.splash-l-title {
+  font-size: clamp(14px, 1.4vw, 20px); font-weight: 600;
+  color: #fff; text-align: center; line-height: 1.3;
+  position: relative; z-index: 1;
+}
+.splash-l-title em {
+  color: rgba(255,255,255,.6); font-style: normal;
+  font-weight: 400; font-size: clamp(11px, 1vw, 14px);
+  display: block; margin-top: 4px;
+}
+
+.splash-panel-r {
+  flex: 1; background: #fff;
+  display: flex; flex-direction: column; justify-content: center;
+  padding: clamp(2rem, 5vh, 5rem) clamp(2rem, 6vw, 8rem);
+}
+.splash-welcome { font-size: clamp(18px, 2vw, 28px); font-weight: 600; color: var(--t1); margin-bottom: clamp(4px, .5vh, 8px); }
+.splash-desc {
+  font-size: clamp(11px, 1vw, 13px); color: var(--t3);
+  margin-bottom: clamp(1.25rem, 3vh, 2.5rem); line-height: 1.6;
+  max-width: 420px;
+}
+.splash-hint {
+  font-size: clamp(10px, .8vw, 12px); color: var(--p-ll);
+  display: flex; align-items: center; gap: 5px;
+  margin-top: clamp(.75rem, 1.5vh, 1.5rem);
+}
+.splash-hint .ti { font-size: 13px; }
+
+.back-link {
+  display: inline-flex; align-items: center; gap: 6px; color: var(--t2); font-size: 13px;
+  cursor: pointer; margin-bottom: clamp(1rem, 2.5vh, 1.75rem); font-weight: 600; transition: all .2s;
+  font-family: inherit; background: #fff; border: 1.5px solid var(--border); border-radius: 8px;
+  padding: 8px 16px;
+}
+.back-link:hover { color: var(--p); border-color: var(--p); background: var(--p-pale); }
+
+.splash-pm-avatar-big {
+  width: 56px; height: 56px; border-radius: 50%; background: rgba(255,255,255,.15); color: #fff;
+  font-weight: 700; font-size: 20px; display: flex; align-items: center; justify-content: center;
+  margin-bottom: clamp(.75rem, 1.5vh, 1.25rem); position: relative; z-index: 1;
+}
+
+.upload-info { margin-top: 1.25rem; display: flex; flex-direction: column; gap: 6px; max-width: 420px; }
+.upload-info-item { display: flex; align-items: center; gap: 7px; font-size: 12px; color: var(--t3); }
+.upload-info-item .ti { font-size: 14px; color: var(--p-ll); flex-shrink: 0; }
+
+/* ===================== PM SELECTOR (lista de botones) ===================== */
+.pm-list { display: flex; flex-direction: column; gap: 10px; max-width: 460px; }
+.pm-group-label {
+  font-size: 11px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase;
+  color: var(--t3); margin: 6px 0 -2px 2px;
+}
+.pm-group-label:first-child { margin-top: 0; }
+.pm-card {
+  display: flex; align-items: center; gap: 14px;
+  background: #fff; border: 1.5px solid var(--border); border-radius: 12px;
+  padding: .85rem 1.1rem; cursor: pointer; text-align: left;
+  border-left: 4px solid var(--pm-color); transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+}
+.pm-card:hover { transform: translateX(3px); box-shadow: 0 8px 20px rgba(92,43,96,.12); border-color: var(--pm-color); }
+.pm-avatar {
+  width: 44px; height: 44px; border-radius: 50%; background: var(--pm-color); color: #fff;
+  font-weight: 700; font-size: 16px; display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.pm-card-body { flex: 1; }
+.pm-card-name { font-weight: 600; font-size: 14px; color: var(--t1); }
+.pm-card-tag { font-size: 11.5px; color: var(--t3); margin-top: 2px; }
+.pm-card-arrow { font-size: 16px; color: var(--t3); transition: color .15s ease, transform .15s ease; }
+.pm-card:hover .pm-card-arrow { color: var(--pm-color); transform: translateX(2px); }
+
+/* ===================== DROPZONE ===================== */
+.dropzone {
+  border: 2px dashed var(--border); border-radius: 14px; background: var(--bg);
+  padding: clamp(2.5rem, 5vh, 3.5rem) 1.5rem; cursor: pointer; max-width: 420px;
+  transition: border-color .2s ease, background .2s ease; text-align: center;
+}
+.dropzone:hover, .dropzone.drag { border-color: var(--p); background: var(--p-pale); }
+.dropzone-icon { font-size: 36px; color: var(--p-ll); display: block; margin-bottom: 12px; }
+.dropzone-main { font-weight: 600; font-size: 14px; margin-bottom: 4px; color: var(--t1); }
+.dropzone-sub { font-size: 12px; color: var(--t3); }
+.upload-status { margin-top: 14px; font-size: 13px; color: var(--t3); min-height: 18px; }
+.upload-status.err { color: var(--red); font-weight: 600; }
+.last-upload-box {
+  margin-top: 16px; max-width: 420px; display: flex; align-items: center; gap: 12px;
+  border: 1.5px solid var(--border); border-radius: 12px; padding: 12px 14px; background: var(--p-pale);
+}
+.last-upload-box .ti { font-size: 20px; color: var(--p); flex-shrink: 0; }
+.last-upload-text { flex: 1; min-width: 0; }
+.last-upload-title { font-size: 12.5px; font-weight: 600; color: var(--t1); }
+.last-upload-sub { font-size: 11.5px; color: var(--t3); margin-top: 2px; }
+.last-upload-box .btn-outline {
+  flex-shrink: 0; white-space: nowrap;
+  background: #fff; border: 1.5px solid var(--p); color: var(--p);
+}
+.last-upload-box .btn-outline:hover { background: var(--p); color: #fff; }
+
+@media (max-width: 768px) {
+  .splash-card { flex-direction: column; }
+  .splash-panel-l { flex: 0 0 38%; padding: 1.5rem 2rem; }
+  .splash-panel-r { flex: 1; padding: 2rem; }
+  .splash-desc { max-width: 100%; }
+  .pm-list, .dropzone { max-width: 100%; }
+}
+@media (max-width: 480px) {
+  .splash-panel-l { flex: 0 0 32%; padding: 1.25rem; }
+  .splash-panel-r { padding: 1.5rem 1.25rem; }
+}
+
+/* ===================== HEADER ===================== */
+.header {
+  background: var(--p-dark);
+  padding: .875rem 1.5rem;
+  display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;
+  position: sticky; top: 0; z-index: 100;
+  box-shadow: 0 2px 16px rgba(128,63,133,.35);
+}
+.header-left { display: flex; align-items: center; gap: 14px; }
+.logo-container { display: flex; align-items: center; }
+.logo-img { height: 42px; width: auto; object-fit: contain; background: #fff; border-radius: 8px; padding: 4px 8px; }
+.logo { width: 38px; height: 38px; background: #fff; border-radius: 9px; display: flex; align-items: center; justify-content: center; font-weight: 700; color: var(--p); font-size: 13px; }
+.header-divider { width: 1px; height: 28px; background: rgba(255,255,255,.2); }
+.header-title { color: #fff; font-size: 15px; font-weight: 600; }
+.header-sub { color: rgba(255,255,255,.5); font-size: 11px; margin-top: 1px; }
+.header-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+
+.pm-pill { display: flex; align-items: center; gap: 8px; background: rgba(255,255,255,.12); color: #fff; padding: 5px 12px 5px 5px; border-radius: 999px; font-weight: 600; font-size: 12.5px; }
+.pm-pill-av { width: 24px; height: 24px; border-radius: 50%; background: rgba(255,255,255,.25); color: #fff; font-size: 11px; display: flex; align-items: center; justify-content: center; font-weight: 700; }
+
+.btn-outline { background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.25); color: #fff; padding: 6px 14px; border-radius: 8px; font-size: 12px; cursor: pointer; font-family: inherit; display: flex; align-items: center; gap: 6px; transition: background .2s; }
+.btn-outline:hover { background: rgba(255,255,255,.2); }
+.btn-primary { background: var(--p); color: #fff; border: none; padding: 7px 16px; border-radius: 8px; font-size: 12px; font-weight: 500; cursor: pointer; font-family: inherit; display: flex; align-items: center; gap: 6px; transition: background .2s; }
+.btn-primary:hover { background: var(--p-l); }
+
+/* ===================== MAIN ===================== */
+.main { padding: 1.25rem 1.5rem; max-width: 1600px; margin: 0 auto; width: 100%; }
+
+.fsel { font-size: 12.5px; padding: 7px 10px; border-radius: 8px; border: 1px solid var(--border); background: #fff; color: var(--t1); font-family: inherit; cursor: pointer; width: 100%; }
+.fsel:focus { outline: none; border-color: var(--p); }
+
+.tbl-clear-btn { font-size: 12px; padding: 6px 12px; border-radius: 7px; border: 1px solid var(--border); background: var(--card); color: var(--t2); font-family: inherit; cursor: pointer; display: flex; align-items: center; gap: 5px; transition: border-color .2s; flex-shrink: 0; }
+.tbl-clear-btn:hover { border-color: var(--red); color: var(--red); }
+
+/* ---------- Filtros (panel colapsable) ---------- */
+.table-header-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.btn-filter {
+  position: relative; border: 1px solid var(--border); background: var(--card); color: var(--t2); font-family: inherit;
+  padding: 7px 14px; border-radius: 8px; font-size: 12.5px; font-weight: 500; cursor: pointer;
+  display: flex; align-items: center; gap: 6px; transition: all .15s ease;
+}
+.btn-filter:hover { border-color: var(--p); color: var(--p); }
+.btn-filter.active { background: var(--p-pale); border-color: var(--p); color: var(--p-dark); }
+.filter-badge {
+  display: inline-flex; align-items: center; justify-content: center; min-width: 17px; height: 17px;
+  border-radius: 999px; background: var(--p); color: #fff; font-size: 10px; font-weight: 700; padding: 0 4px;
+}
+
+.filters-drawer { display: none; border-top: 1px solid var(--border); background: var(--bg); padding: 1rem; }
+.filters-drawer.open { display: block; }
+.filters-drawer-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px,1fr)); gap: 12px; margin-bottom: 12px; }
+.f-group { display: flex; flex-direction: column; gap: 4px; }
+.f-group label { font-size: 10.5px; font-weight: 600; color: var(--t3); text-transform: uppercase; letter-spacing: .4px; }
+.filters-drawer-footer { display: flex; align-items: center; justify-content: flex-end; gap: 10px; flex-wrap: wrap; }
+
+.active-chips { display: none; flex-wrap: wrap; gap: 6px; padding: .75rem 1rem; align-items: center; }
+
+/* ---------- Tabs por unidad (como las pestañas colgantes del Excel original) ---------- */
+.unit-tabs { display: none; gap: 6px; padding: .6rem 1rem 0; align-items: flex-end; overflow-x: auto; }
+.unit-tabs.show { display: flex; }
+.unit-tab {
+  --tab-bg: var(--p-pale); --tab-fg: var(--p-dark);
+  border: none; background: var(--tab-bg); color: var(--tab-fg); font-family: inherit; cursor: pointer;
+  font-size: 12.5px; font-weight: 500; padding: .55rem .95rem; white-space: nowrap;
+  border-radius: 9px 9px 0 0; transition: transform .15s ease, opacity .15s ease; opacity: .7;
+}
+.unit-tab:hover { opacity: .9; }
+.unit-tab.active { opacity: 1; font-weight: 700; padding-top: .7rem; margin-bottom: -1px; box-shadow: 0 -2px 8px rgba(30,15,32,.08); }
+.unit-tab-count { opacity: .75; font-weight: 500; }
+.active-chip {
+  display: inline-flex; align-items: center; gap: 5px; background: var(--p-pale); color: var(--p-dark);
+  font-size: 11px; font-weight: 500; padding: 4px 10px; border-radius: 999px; cursor: pointer; transition: background .15s ease;
+}
+.active-chip:hover { background: #E5CCE7; }
+.active-chip .ti { font-size: 10px; }
+.active-chip-clear { background: transparent; color: var(--red); border: 1px solid #F4D4D4; }
+.active-chip-clear:hover { background: #FBEAEA; }
+
+/* ===================== INSIGHT ===================== */
+.insight-banner {
+  display: none; align-items: flex-start; gap: 10px; background: var(--p-pale);
+  border: 1px solid var(--border); border-left: 3px solid var(--p); border-radius: 10px;
+  padding: .75rem 1rem; margin-bottom: 1.1rem; font-size: 12.5px; color: var(--p-dark); line-height: 1.55;
+}
+.insight-banner .ti { font-size: 16px; color: var(--p); flex-shrink: 0; margin-top: 1px; }
+.insight-banner-warn {
+  background: #FEF3C7; border-color: #FDE68A; border-left-color: #D97706; color: #92400E;
+}
+.insight-banner-warn .ti { color: #D97706; }
+
+/* ===================== KPIs ===================== */
+.kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(195px, 1fr)); gap: 12px; margin-bottom: 1.25rem; }
+.kpi { background: var(--card); border-radius: 14px; padding: 1rem 1.1rem; border: 1px solid var(--border); transition: box-shadow .2s; }
+.kpi:hover { box-shadow: 0 4px 14px rgba(128,63,133,.12); }
+.kpi-icon-wrap { width: 36px; height: 36px; border-radius: 10px; background: var(--p-pale); display: flex; align-items: center; justify-content: center; margin-bottom: 10px; }
+.kpi-icon-wrap .ti { font-size: 17px; color: var(--p); }
+.kpi-label { font-size: 10px; color: var(--t3); font-weight: 600; text-transform: uppercase; letter-spacing: .4px; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.kpi-val { font-size: 28px; font-weight: 800; line-height: 1.1; color: var(--t1); }
+.kpi-sub { font-size: 12px; font-weight: 500; color: var(--t2); margin-top: 5px; line-height: 1.45; }
+.kpi-list { display: flex; flex-direction: column; gap: 7px; margin-top: 6px; }
+.kpi-list-row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.kpi-list-row span { color: var(--t2); display: flex; align-items: center; gap: 7px; }
+.kpi-list-row span::before { content: ''; width: 5px; height: 5px; border-radius: 50%; background: var(--p); flex-shrink: 0; }
+.kpi-list-row b { color: var(--t1); font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.kpi-link { color: var(--p); font-weight: 600; text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
+.kpi-link:hover { color: var(--p-dark); }
+.quicklist-raw-note { font-size: 10.5px; color: var(--t3); margin-top: 3px; font-style: italic; }
+/* Columna "PM" (de qué PM viene cada fila): solo tiene sentido en la vista General, que
+   junta a los 4 PM en un mismo dashboard — en el resto se oculta para no ensuciar la tabla
+   con una columna que siempre diría lo mismo. */
+.pm-col { display: none; }
+body.is-general .pm-col { display: table-cell; }
+.kpi.accent .kpi-icon-wrap { background: var(--p); }
+.kpi.accent .kpi-icon-wrap .ti { color: #fff; }
+.kpi.accent .kpi-val { color: var(--p); }
+
+/* ===================== ESTATUS BREAKDOWN ===================== */
+.estatus-breakdown { display: none; flex-wrap: wrap; gap: 8px; margin-bottom: 1.25rem; }
+.estatus-chip { font-size: 12px; padding: 6px 12px; }
+.estatus-chip strong { font-weight: 700; margin-left: 4px; }
+
+/* ===================== CHARTS ===================== */
+.charts-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; margin-bottom: 1.25rem; }
+.chart-card { background: var(--card); border-radius: 12px; padding: 1rem; border: 1px solid var(--border); }
+.chart-header { display: flex; align-items: center; gap: 6px; margin-bottom: .625rem; }
+.chart-header .ti { font-size: 15px; color: var(--p-ll); }
+.chart-title { font-size: 10px; font-weight: 600; color: var(--t2); text-transform: uppercase; letter-spacing: .4px; }
+.chart-wrap { position: relative; height: 230px; }
+
+/* ===================== TABLE ===================== */
+.table-card { background: var(--card); border-radius: 12px; border: 1px solid var(--border); overflow: hidden; }
+.table-header { padding: .875rem 1rem; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+.table-header-left { display: flex; align-items: center; gap: 8px; }
+.table-header-left .ti { font-size: 16px; color: var(--p-ll); }
+.table-title { font-size: 13px; font-weight: 600; }
+.table-count { font-size: 11px; background: var(--p-pale); color: var(--p); padding: 2px 10px; border-radius: 20px; font-weight: 500; white-space: nowrap; }
+.table-scroll { overflow-x: auto; max-height: 460px; overflow-y: auto; margin: 0 1rem 1rem; border: 1px solid var(--border); border-radius: 10px; }
+.table-scroll-top { overflow-x: auto; overflow-y: hidden; height: 14px; margin: 0 1rem; }
+.table-scroll-top #table-scroll-top-spacer { height: 1px; }
+
+table { width: 100%; border-collapse: collapse; font-size: 12px; min-width: 920px; }
+th { font-size: 10px; font-weight: 600; color: var(--t3); text-transform: uppercase; letter-spacing: .4px; padding: 8px 12px; border-bottom: 1px solid var(--border); text-align: left; background: var(--bg); position: sticky; top: 0; white-space: nowrap; cursor: pointer; }
+th:hover { color: var(--p); }
+th .arrow { font-size: 11px; margin-left: 3px; opacity: .5; }
+td { padding: 8px 12px; border-bottom: 1px solid var(--border); white-space: nowrap; max-width: 240px; overflow: hidden; text-overflow: ellipsis; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--p-pale); }
+.proj-name { font-weight: 600; max-width: 280px; }
+
+.unidad-tag { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 11px; font-weight: 600; background: var(--p-pale); color: var(--p-dark); }
+.th-num, .td-num { color: var(--t3); font-weight: 500; text-align: right; width: 1%; }
+
+/* ===================== BADGES ===================== */
+.badges { display: flex; gap: 4px; flex-wrap: wrap; }
+.badge { display: inline-block; font-size: 10px; padding: 2px 8px; border-radius: 20px; font-weight: 500; }
+.badge-ti   { background: #DBEAFE; color: #1D4ED8; }
+.badge-bio  { background: #D1FAE5; color: #065F46; }
+.badge-con  { background: #FEF3C7; color: #92400E; }
+.badge-mtt  { background: var(--p-pale); color: var(--p-dark); }
+.badge-gsee { background: #E0E7FF; color: #3730A3; }
+.badge-descartado { background: #FEE2E2; color: #991B1B; }
+.badge-validando { background: #DCFCE7; color: #15803D; }
+tr.row-descartado td { background: #FEF2F2; }
+tr.row-validando td { background: #F0FDF4; }
+.badge-real { background: #DCFCE7; color: #15803D; }
+.badge-estimado { background: #F3F4F6; color: #6B7280; }
+
+.status-pill { display: inline-block; font-size: 10px; padding: 2px 8px; border-radius: 20px; font-weight: 500; }
+.status-aprobado  { background: #D1FAE5; color: #065F46; }
+.status-rechazado { background: #FEE2E2; color: #991B1B; }
+.status-pendiente { background: #FEF3C7; color: #92400E; }
+.status-cancelado { background: #E5E7EB; color: #374151; }
+.status-other     { background: #F3F4F6; color: #6B7280; }
+
+.row-link { color: var(--p); font-weight: 600; cursor: pointer; font-size: 11.5px; white-space: nowrap; }
+.row-link:hover { text-decoration: underline; }
+
+/* ===================== SEARCH ===================== */
+.search-box { display: flex; align-items: center; gap: 6px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 4px 10px; }
+.search-box .ti { font-size: 14px; color: var(--t3); }
+.search-box input { border: none; background: transparent; font-family: inherit; font-size: 12px; color: var(--t1); outline: none; width: 200px; }
+.search-box input::placeholder { color: var(--t3); }
+.search-box.wide { width: 100%; }
+.search-box.wide input { width: 100%; }
+
+/* ===================== PAGER ===================== */
+.pager { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 0 0 1rem; }
+.pager button { border: 1px solid var(--border); background: #fff; padding: 6px 12px; border-radius: 7px; cursor: pointer; font-size: 12px; font-weight: 600; color: var(--t2); font-family: inherit; display: flex; align-items: center; gap: 5px; }
+.pager button:hover:not(:disabled) { border-color: var(--p); color: var(--p); }
+.pager button:disabled { opacity: .4; cursor: default; }
+.pager span { font-size: 12px; color: var(--t3); margin: 0 6px; }
+
+.empty-row td { text-align: center; padding: 40px 20px; color: var(--t3); white-space: normal; }
+
+/* ===================== MODAL ===================== */
+.modal-bg { position: fixed; inset: 0; background: rgba(30,15,32,.5); display: none; align-items: center; justify-content: center; padding: 20px; z-index: 200; }
+.modal-bg.active { display: flex; }
+.modal { background: #fff; border-radius: 16px; max-width: 640px; width: 100%; max-height: 86vh; overflow-y: auto; padding: 1.5rem 1.75rem; }
+.modal.modal-wide { max-width: 1000px; }
+.modal-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 6px; }
+.modal-head h3 { margin: 0; font-size: 17px; font-weight: 700; line-height: 1.3; color: var(--t1); }
+.modal-close { border: none; background: var(--p-pale); color: var(--p-dark); width: 30px; height: 30px; border-radius: 50%; cursor: pointer; font-size: 14px; flex: none; display: flex; align-items: center; justify-content: center; }
+.modal-close:hover { background: var(--p-ll); color: #fff; }
+.modal-sub { font-size: 12px; color: var(--t3); margin-bottom: 18px; }
+.modal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 18px; margin-bottom: 16px; }
+.mf { font-size: 13px; }
+.mf .l { font-size: 10.5px; font-weight: 600; color: var(--t3); text-transform: uppercase; letter-spacing: .4px; margin-bottom: 2px; }
+.mf .v { font-weight: 600; color: var(--t1); }
+.modal-block { margin-top: 14px; }
+.modal-block .l { font-size: 10.5px; font-weight: 600; color: var(--t3); text-transform: uppercase; letter-spacing: .4px; margin-bottom: 4px; }
+.modal-block .v { font-size: 13px; line-height: 1.5; white-space: pre-wrap; color: var(--t1); }
+
+/* ===================== RESPONSIVE ===================== */
+@media (max-width: 1200px) {
+  .charts-row { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 900px) {
+  .charts-row { grid-template-columns: 1fr; }
+  .main { padding: 1rem; }
+}
+@media (max-width: 480px) {
+  .header-title { font-size: 13px; }
+  .header-sub { display: none; }
+  .main { padding: .75rem; }
+  .modal-grid { grid-template-columns: 1fr; }
+}
+</style>
+<link rel="stylesheet" href="rpps-theme.css">
+</head>
+<body>
+
+<!-- ============ SCREEN 1: LOGIN / PM SELECTOR ============ -->
+<div id="screen-login" class="screen" style="display:none!important">
+  <div class="splash-card">
+    <div class="splash-panel-l">
+      <div class="splash-logo-box">
+        <img src="logo.jpg" alt="CHRISTUS MUGUERZA"
+             onerror="this.style.display='none'; this.parentElement.style.display='none'; document.getElementById('splash-cm').style.display='block'">
+      </div>
+      <div class="splash-logo-cm" id="splash-cm" style="display:none">CM</div>
+      <div class="splash-l-area">Seguimiento de solicitudes CAPEX</div>
+      <div class="splash-l-title">
+        Un dashboard por cada PM
+        <em>Selecciona tu nombre para ver tus unidades</em>
+      </div>
+    </div>
+    <div class="splash-panel-r">
+      <div class="splash-welcome">¿Quién eres?</div>
+      <div class="splash-desc">Elige tu nombre para ver el avance de las solicitudes de tus unidades a cargo.</div>
+      <div class="pm-list" id="pm-grid"></div>
+      <div class="splash-hint">
+        <i class="ti ti-info-circle" aria-hidden="true"></i>
+        Podrás cambiar de PM o de archivo en cualquier momento
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ SCREEN ECOSISTEMA UPLOAD ============ -->
+<!-- ============ PM SWITCHER MODAL ============ -->
+<div id="pm-switcher-overlay" style="display:none;position:fixed;inset:0;z-index:10000;background:rgba(26,10,30,.85);backdrop-filter:blur(6px);align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:24px;padding:36px 40px;max-width:620px;width:calc(100vw - 32px);box-shadow:0 40px 100px rgba(0,0,0,.5);position:relative;">
+    <button onclick="App.closePmSwitcher()" style="position:absolute;top:16px;right:16px;background:none;border:none;font-size:22px;color:#A889AB;cursor:pointer;line-height:1;">✕</button>
+    <div style="font-size:19px;font-weight:800;color:#1E0F20;margin-bottom:6px;">Seleccionar perfil</div>
+    <div style="font-size:13px;color:#A889AB;margin-bottom:24px;">Elige el PM cuyo dashboard quieres ver</div>
+    <div id="pm-switcher-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;"></div>
+  </div>
+</div>
+
+<div id="screen-ecosistema-upload" class="screen eco-screen">
+  <div class="eco-card">
+    <div class="eco-top">
+      <div class="eco-logo"><img src="logo.jpg" alt="CHRISTUS MUGUERZA" onerror="this.parentElement.style.display='none'"></div>
+      <span class="eco-eyebrow"><i class="ti ti-report-money" aria-hidden="true"></i> CAPEX 2027 — RPPs</span>
+    </div>
+    <div id="ecosistema-pm-av" class="eco-av"></div>
+    <div id="ecosistema-pm-name" class="eco-name"></div>
+    <div class="eco-sub">Selecciona tu archivo Excel CAPEX (o la carpeta en .zip con tus plantillas) para ver tu dashboard.</div>
+    <button id="ecosistema-upload-btn" class="eco-btn" onclick="document.getElementById('file-input').click()">
+      <i class="ti ti-upload" aria-hidden="true"></i> Seleccionar archivo (.xlsx o .zip)
+    </button>
+    <div id="ecosistema-status" class="eco-status" style="display:none;"></div>
+    <button class="eco-back" onclick="window.location.replace('../Dashboard.html')">
+      <i class="ti ti-arrow-left" aria-hidden="true"></i> Volver al menú del ecosistema
+    </button>
+    <div class="eco-note"><i class="ti ti-lock" aria-hidden="true"></i> El archivo se procesa solo en este equipo; no se envía a ningún servidor.</div>
+  </div>
+</div>
+
+<!-- ============ SCREEN 2: UPLOAD ============ -->
+<div id="screen-upload" class="screen">
+  <div class="splash-card">
+    <div class="splash-panel-l">
+      <div class="splash-logo-box">
+        <img src="logo.jpg" alt="CHRISTUS MUGUERZA"
+             onerror="this.style.display='none'; this.parentElement.style.display='none'; document.getElementById('splash-cm-2').style.display='block'">
+      </div>
+      <div class="splash-logo-cm" id="splash-cm-2" style="display:none">CM</div>
+      <div class="splash-pm-avatar-big" id="upload-pm-avatar"></div>
+      <div class="splash-l-area" id="upload-pm-area">PM seleccionado</div>
+      <div class="splash-l-title" id="upload-pm-title">
+        <em>Carga el archivo CAPEX con tus unidades</em>
+      </div>
+    </div>
+    <div class="splash-panel-r">
+      <button type="button" class="back-link" onclick="window.location.replace('../Dashboard.html')"><i class="ti ti-arrow-left" aria-hidden="true"></i> Volver al Ecosistema</button>
+      <div class="splash-welcome">Carga tu archivo Excel</div>
+      <div class="splash-desc">Sube el archivo CAPEX (.xlsx) con el detalle de solicitudes por unidad — o directo tu carpeta completa (comprimida en .zip) con el archivo principal y tus plantillas de presupuesto juntos, y se acomoda todo solo.</div>
+      <div class="dropzone" id="dropzone" onclick="document.getElementById('file-input').click()">
+        <i class="ti ti-file-spreadsheet dropzone-icon" aria-hidden="true"></i>
+        <div class="dropzone-main">Arrastra tu Excel o tu carpeta en .zip aquí, o haz clic para buscarlo</div>
+        <div class="dropzone-sub">Formatos aceptados: .xlsx, .xlsm, .xls, .zip (puedes seleccionar varios de golpe)</div>
+      </div>
+      <input type="file" id="file-input" accept=".xlsx,.xlsm,.xls,.zip" multiple style="display:none">
+      <div class="upload-status" id="upload-status"></div>
+      <div class="last-upload-box" id="last-upload-box" style="display:none">
+        <i class="ti ti-history" aria-hidden="true"></i>
+        <div class="last-upload-text">
+          <div class="last-upload-title">Ya tienes una carga guardada en este navegador</div>
+          <div class="last-upload-sub" id="last-upload-sub"></div>
+        </div>
+        <button type="button" class="btn-outline" id="btn-use-last-upload" onclick="App.useLastUpload()">Ver ese dashboard</button>
+      </div>
+      <div class="upload-info">
+        <div class="upload-info-item"><i class="ti ti-stack-2" aria-hidden="true"></i> Cada hoja del Excel representa una unidad</div>
+        <div class="upload-info-item"><i class="ti ti-table-row" aria-hidden="true"></i> La primera fila debe tener los encabezados</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ SCREEN 3: DASHBOARD ============ -->
+<div id="screen-dashboard" class="screen">
+  <header class="app-top">
+    <div class="hdr">
+      <div class="hdr-left">
+        <div class="hdr-logo-box"><img src="logo.jpg" alt="CHRISTUS MUGUERZA" class="hdr-logo" onerror="this.parentElement.style.display='none'"></div>
+        <div class="hdr-text">
+          <div class="hdr-eyebrow">GSEE · Proyectos TI</div>
+          <div class="hdr-title">CAPEX 2027 — RPPs</div>
+        </div>
+      </div>
+      <div class="hdr-right">
+        <span class="pm-pill" id="dash-pm-pill"><span class="pm-pill-av" id="dash-pm-av"></span><span id="dash-pm-name"></span></span>
+        <div class="hgroup">
+          <button class="hbtn" id="btn-change-file" onclick="App.goToUpload()" title="Cargar otro archivo CAPEX"><i class="ti ti-replace" aria-hidden="true"></i><span>Cambiar archivo</span></button>
+          <button class="hbtn" onclick="App.openPmSwitcher()" title="Ver el dashboard de otro PM"><i class="ti ti-users" aria-hidden="true"></i><span>Cambiar perfil</span></button>
+        </div>
+        <div class="hgroup">
+          <button class="hbtn" onclick="window.location.replace('../Dashboard.html')" title="Regresar al menú del ecosistema"><i class="ti ti-apps" aria-hidden="true"></i><span>Menú</span></button>
+          <button class="hbtn icon danger" onclick="window.cmLogout && window.cmLogout()" title="Cerrar sesión" aria-label="Cerrar sesión"><i class="ti ti-logout" aria-hidden="true"></i></button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="main">
+    <div class="rp-hero">
+      <span class="rp-eyebrow"><i class="ti ti-report-money" aria-hidden="true"></i> CAPEX 2027 · Solicitudes RPP</span>
+      <h1 class="rp-hero-title">Seguimiento de solicitudes CAPEX</h1>
+      <div class="rp-hero-sub" id="dash-subtitle">CHRISTUS MUGUERZA</div>
+    </div>
+    <div class="insight-banner insight-banner-warn" id="storage-warning-banner" style="display:none"></div>
+    <div class="insight-banner insight-banner-warn" id="general-missing-banner" style="display:none"></div>
+    <div class="insight-banner" id="insight-banner"></div>
+
+    <div class="kpi-grid" id="kpi-row"></div>
+
+    <div class="estatus-breakdown" id="estatus-breakdown"></div>
+
+    <div class="charts-row">
+      <div class="chart-card">
+        <div class="chart-header"><i class="ti ti-chart-bar" aria-hidden="true"></i><span class="chart-title">Solicitudes por Unidad</span></div>
+        <div class="chart-wrap"><canvas id="chart-unidad"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-header"><i class="ti ti-list-details" aria-hidden="true"></i><span class="chart-title">Por Tipo de Tarea</span></div>
+        <div class="chart-wrap"><canvas id="chart-tarea"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-header"><i class="ti ti-chart-pie" aria-hidden="true"></i><span class="chart-title">Por Tipo de Proyecto</span></div>
+        <div class="chart-wrap"><canvas id="chart-tipoproy"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-header" style="justify-content:space-between;">
+          <div style="display:flex; align-items:center; gap:6px;">
+            <i class="ti ti-server-2" aria-hidden="true"></i><span class="chart-title">GSEE vs INFRA con TI</span>
+          </div>
+          <span class="kpi-link" id="link-gsee-otro" style="display:none; font-size:11px;"></span>
+        </div>
+        <div class="chart-wrap"><canvas id="chart-gsee"></canvas></div>
+      </div>
+    </div>
+
+    <div class="chart-card" id="flujo-card" style="margin-bottom:1.25rem;">
+      <div class="chart-header" style="justify-content:space-between;">
+        <div style="display:flex; align-items:center; gap:6px;">
+          <i class="ti ti-status-change" aria-hidden="true"></i><span class="chart-title">Flujo GSEE — avance por etapa</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <select class="fsel" id="flujo-anio-filter" style="font-size:11.5px;">
+            <option value="actual">Año vigente</option>
+            <option value="todos">Todos los años</option>
+          </select>
+          <button class="btn-filter" type="button" onclick="App.openFlujoList()">
+            <i class="ti ti-list-details" aria-hidden="true"></i> Ver RPPs GSEE
+            <span class="filter-badge" id="flujo-list-count">0</span>
+          </button>
+        </div>
+      </div>
+      <div class="chart-wrap" style="height:260px;"><canvas id="chart-gsee-estatus"></canvas></div>
+      <div id="flujo-pendientes-pm" style="display:none; margin-top:10px; padding-top:10px; border-top:1px solid #F0F1F4;"></div>
+    </div>
+
+    <div class="table-card">
+      <div class="table-header">
+        <div class="table-header-left">
+          <i class="ti ti-table" aria-hidden="true"></i>
+          <span class="table-title">Detalle de Solicitudes</span>
+          <span class="table-count" id="table-count"></span>
+        </div>
+        <div class="table-header-right">
+          <div class="search-box">
+            <i class="ti ti-search" aria-hidden="true"></i>
+            <input type="text" id="f-search" placeholder="Proyecto, solicitante, RPP...">
+          </div>
+          <button class="btn-filter" id="btn-summary" type="button" style="display:none" onclick="App.openSummary()">
+            <i class="ti ti-report" aria-hidden="true"></i> Resumen consolidado
+            <span class="filter-badge summary-count">0</span>
+          </button>
+          <button class="btn-filter" id="btn-toggle-filters" type="button">
+            <i class="ti ti-adjustments-horizontal" aria-hidden="true"></i> Filtros
+            <span class="filter-badge" id="filter-badge" style="display:none">0</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="filters-drawer" id="filters-drawer">
+        <div class="filters-drawer-grid">
+          <div class="f-group">
+            <label for="f-estatus">Estatus</label>
+            <select class="fsel" id="f-estatus"><option value="">Todos</option></select>
+          </div>
+          <div class="f-group">
+            <label for="f-anio">Año</label>
+            <select class="fsel" id="f-anio"><option value="">Todos</option></select>
+          </div>
+          <div class="f-group">
+            <label for="f-tarea">Tipo de tarea</label>
+            <select class="fsel" id="f-tarea"><option value="">Todas</option></select>
+          </div>
+          <div class="f-group">
+            <label for="f-tipoproy">Tipo de proyecto</label>
+            <select class="fsel" id="f-tipoproy"><option value="">Todos</option></select>
+          </div>
+          <div class="f-group">
+            <label for="f-gseecat">GSEE / INFRA</label>
+            <select class="fsel" id="f-gseecat"><option value="">Todas</option></select>
+          </div>
+          <div class="f-group">
+            <label for="f-area">Área</label>
+            <select class="fsel" id="f-area">
+              <option value="">Todas</option>
+              <option value="construccion">Construcción</option>
+              <option value="mantenimiento">Mantenimiento</option>
+              <option value="biomedica">Biomédica</option>
+              <option value="ti">TI</option>
+            </select>
+          </div>
+        </div>
+        <div class="filters-drawer-footer">
+          <button class="tbl-clear-btn" id="btn-clear"><i class="ti ti-x" aria-hidden="true"></i> Limpiar filtros</button>
+        </div>
+      </div>
+
+      <div class="active-chips" id="active-chips"></div>
+
+      <div class="unit-tabs" id="unit-tabs"></div>
+
+      <div class="table-scroll-top" id="table-scroll-top"><div id="table-scroll-top-spacer"></div></div>
+      <div class="table-scroll" id="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th class="th-num">#</th>
+              <th class="pm-col" data-sort="pmOrigen">PM <i class="ti ti-arrows-sort arrow" aria-hidden="true"></i></th>
+              <th data-sort="unidad">Unidad <i class="ti ti-arrows-sort arrow" aria-hidden="true"></i></th>
+              <th data-sort="rpp">No. RPP <i class="ti ti-arrows-sort arrow" aria-hidden="true"></i></th>
+              <th data-sort="anio">Año <i class="ti ti-arrows-sort arrow" aria-hidden="true"></i></th>
+              <th data-sort="proyecto">Proyecto <i class="ti ti-arrows-sort arrow" aria-hidden="true"></i></th>
+              <th data-sort="tipoTarea">Tipo de tarea <i class="ti ti-arrows-sort arrow" aria-hidden="true"></i></th>
+              <th data-sort="tipoProyecto">Tipo de proyecto <i class="ti ti-arrows-sort arrow" aria-hidden="true"></i></th>
+              <th data-sort="prioridad">Prioridad <i class="ti ti-arrows-sort arrow" aria-hidden="true"></i></th>
+              <th>Áreas</th>
+              <th data-sort="gseeCategory">GSEE/INFRA <i class="ti ti-arrows-sort arrow" aria-hidden="true"></i></th>
+              <th data-sort="estatus">Estatus <i class="ti ti-arrows-sort arrow" aria-hidden="true"></i></th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="table-body"></tbody>
+        </table>
+      </div>
+
+      <div class="pager" id="pager"></div>
+    </div>
+  </main>
+</div>
+
+<!-- ============ MODAL DETALLE ============ -->
+<div class="modal-bg" id="modal-bg">
+  <div class="modal">
+    <div class="modal-head">
+      <h3 id="modal-title"></h3>
+      <button class="modal-close" onclick="App.closeModal()"><i class="ti ti-x" aria-hidden="true"></i></button>
+    </div>
+    <div class="modal-sub" id="modal-sub"></div>
+    <div class="modal-grid" id="modal-grid"></div>
+    <div id="modal-extra"></div>
+  </div>
+</div>
+
+<!-- ============ MODAL RESUMEN CONSOLIDADO ============ -->
+<div class="modal-bg" id="modal-summary-bg">
+  <div class="modal modal-wide">
+    <div class="modal-head">
+      <h3>Resumen consolidado (<span id="summary-count-label">0</span>)</h3>
+      <button class="modal-close" onclick="App.closeSummary()"><i class="ti ti-x" aria-hidden="true"></i></button>
+    </div>
+    <div class="modal-sub">Hoja "Concentrado" del archivo — junta todas tus unidades en una sola vista. No se mezcla con el conteo del detalle ni con las gráficas, para no duplicar solicitudes.</div>
+    <div class="search-box wide" style="margin-bottom:12px;">
+      <i class="ti ti-search" aria-hidden="true"></i>
+      <input type="text" id="summary-search" placeholder="Buscar por No. RPP, proyecto, unidad...">
+    </div>
+    <div class="table-scroll" style="margin:0; max-height:60vh;">
+      <table>
+        <thead>
+          <tr>
+            <th>Unidad</th><th>No. RPP</th><th>Proyecto</th><th>Tipo de tarea</th><th>Prioridad</th><th>Estatus</th><th></th>
+          </tr>
+        </thead>
+        <tbody id="summary-table-body"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ============ MODAL RPPs GSEE (flujo) ============ -->
+<div class="modal-bg" id="modal-flujo-bg">
+  <div class="modal modal-wide">
+    <div class="modal-head">
+      <h3>RPPs GSEE (<span id="flujo-count-label">0</span>)</h3>
+      <button class="modal-close" onclick="App.closeFlujoList()"><i class="ti ti-x" aria-hidden="true"></i></button>
+    </div>
+    <div class="modal-sub">Estatus y etapa actual del flujo (Definición de alcance → ... → Carga en PowerApps) de cada solicitud GSEE.</div>
+    <div class="search-box wide" style="margin-bottom:12px;">
+      <i class="ti ti-search" aria-hidden="true"></i>
+      <input type="text" id="flujo-search" placeholder="Buscar por No. RPP, proyecto, unidad...">
+    </div>
+    <div class="table-scroll" style="margin:0; max-height:60vh;">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th><th class="pm-col">PM</th><th>Unidad</th><th>No. RPP</th><th>Año</th><th>Proyecto</th><th>Estatus</th><th>Etapa actual del flujo</th><th></th>
+          </tr>
+        </thead>
+        <tbody id="flujo-table-body"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ============ MODAL genérico: lista rápida de RPPs (desgloses de KPI) ============ -->
+<div class="modal-bg" id="modal-quicklist-bg">
+  <div class="modal modal-wide">
+    <div class="modal-head">
+      <h3 id="quicklist-title">RPPs (<span id="quicklist-count-label">0</span>)</h3>
+      <button class="modal-close" onclick="App.closeQuickList()"><i class="ti ti-x" aria-hidden="true"></i></button>
+    </div>
+    <div class="modal-sub" id="quicklist-sub"></div>
+    <div class="table-scroll" style="margin:0; max-height:60vh;">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th><th class="pm-col">PM</th><th>Unidad</th><th>No. RPP</th><th>Año</th><th>Proyecto</th><th>GSEE/INFRA</th><th>Estatus</th><th></th>
+          </tr>
+        </thead>
+        <tbody id="quicklist-table-body"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Input oculto para cargar varias plantillas de presupuesto (Plantilla A/B) a la vez -->
+<input type="file" id="budget-template-input" accept=".xlsx,.xlsm,.xls,.zip" multiple style="display:none">
+
+<!-- ============ MODAL: Presupuesto por RPP (plantillas A/B cargadas) ============ -->
+<div class="modal-bg" id="modal-budget-bg">
+  <div class="modal modal-wide">
+    <div class="modal-head">
+      <h3>Presupuesto por RPP <span id="budget-count-label"></span></h3>
+      <button class="modal-close" onclick="App.closeBudgetList()"><i class="ti ti-x" aria-hidden="true"></i></button>
+    </div>
+    <div class="modal-sub">Suma de Plantilla A + Plantilla B (Inversión Año 1) por RPP. Solo se listan los RPP con al menos una plantilla cargada — sin plantilla no hay presupuesto real capturado.</div>
+    <div class="table-scroll" style="margin:0; max-height:60vh;">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th><th>No. RPP</th><th>Proyecto</th><th>Unidad</th><th>Año</th><th>Plantilla A</th><th>Plantilla B</th><th>Total</th>
+          </tr>
+        </thead>
+        <tbody id="budget-table-body"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ===================== CONFIG ===================== */
+const PM_LIST = [
+  {id:'alexia', name:'Alexia C.', short:'Alexia C.', firstName:'Alexia', color:'#2366b8', initials:'AC',
+    // El detalle real de Alexia debe salir SOLO de la hoja "query (1)" (el consolidado de
+    // toda la compañía), no de sus hojas por unidad (CM Altagracia/Conchita/Vidriera/etc.)
+    // — esas se ignoran, igual que con Alexis.
+    preferConsolidado: true,
+    // "query (1)" trae las 40 unidades de TODA la compañía, no solo las de Alexia, así que
+    // hay que filtrarla a solo las suyas (igual que con Zaira). Los nombres son los que usa
+    // esa hoja en su columna "Unidad de Servicio", que no siempre coinciden con el nombre de
+    // la pestaña por unidad del PM (confirmado cruzando No. RPP entre ambas: la pestaña "CM
+    // Faro" corresponde a "CM Hospital Del Mayab" en query (1), no a una unidad "Faro").
+    unitWhitelist: ['CM Hospital Altagracia', 'CM Hospital Conchita', 'CM Hospital Vidriera',
+      'CM Hospital Cumbres', 'CM Hospital Del Mayab', 'CM Hospital Reynosa',
+      'CM Hospital San Nicolás', 'CM Clínica Murano', '7/24 Asistencia Médica', 'CM Hospital Cabo'],
+    // Su archivo no tiene una columna con nombre "GSEE/INFRA"; reutilizaron la columna
+    // "Área" para eso (ver FIELD_CANDIDATES.areaGseeInfra). Solo se usa como respaldo si no
+    // aparece una columna de GSEE/INFRA de verdad.
+    gseeInfraField: 'areaGseeInfra',
+    // "query (1)" trae 2024-2027 revueltos; los KPI y gráficas se limitan al año vigente
+    // (ver App.yearRows) para no mezclar presupuestos viejos con el actual.
+    scopeKpisToYear: true},
+  {id:'alexis', name:'Alexis L.', short:'Alexis L.', firstName:'Alexis', color:'#c4501c', initials:'AL',
+    // Orden fijo pedido por el PM para las pestañas por unidad, en vez de alfabético.
+    unitOrder: ['CM Hospital Alta Especialidad', 'CM Hospital del Parque', 'CM Hospital Saltillo', 'CM Hospital Sur', 'CM Clínica Juventud', 'CM Clínica San Pedro'],
+    // El detalle, los KPI y las gráficas deben salir SOLO de la hoja "Concentrado2" (su
+    // consolidado), no de las hojas por unidad (AE/DP/Saltillo/SUR/JUV/SP) — esas se ignoran.
+    preferConsolidado: true},
+  {id:'zaira',  name:'Zaira F.',  short:'Zaira F.',  firstName:'Zaira',  color:'#13805a', initials:'ZF',
+    // El archivo de Zaira no viene dividido por unidad: son dos hojas "query" con el export
+    // completo de toda la compañía. Esta lista filtra esas hojas a solo las unidades que
+    // confirmaron que son de ella, para no mezclar trabajo de otros PMs en su dashboard.
+    unitWhitelist: ['CM Hospital UPAEP', 'CM Hospital Betania'],
+    // Su archivo no tiene columna "GSEE/INFRA" propia; reutilizaron la columna "Id de
+    // Proyecto" para guardar ahí "GSEE"/"INFRA". Solo se usa como respaldo si no aparece
+    // una columna de GSEE/INFRA de verdad.
+    gseeInfraField: 'idProyecto'},
+  {id:'cynthia', name:'Cynthia M.', short:'Cynthia M.', firstName:'Cynthia', color:'#9a6600', initials:'CM',
+    // Su archivo no trae columna de GSEE/INFRA — todo lo que gestiona es GSEE por definición,
+    // así que se clasifica así de una vez en vez de dejarlo "sin categoría".
+    defaultGseeCategory: 'GSEE'},
+  {id:'staffgsee', name:'Staff GSEE', short:'Staff GSEE', firstName:'Staff GSEE', color:'#5C2B60', initials:'SG',
+    // No es un PM con unidades propias: es el roadmap de proyectos estratégicos GSEE,
+    // curado a mano por número de RPP dentro del export completo de la compañía (el mismo
+    // archivo ancho "query (N)" que ya sabe leer el resto de la app). Los RPP que en el
+    // roadmap original venían en rojo se excluyeron a propósito (quedó solo el RPP vigente
+    // de cada proyecto, cuando había uno viejo tachado al lado).
+    // Se excluyen a propósito RPP-7747, RPP-7748, RPP-7749 y RPP-7831: ya tienen PM real
+    // (3 en Cynthia, 1 en Alexis — confirmado con Ale) y se cuentan ahí, no aquí, para no
+    // duplicarlos. Ver STAFF_GSEE_INFO para el responsable de cada uno de los 8 restantes.
+    rppWhitelist: ['RPP-7742','RPP-7744','RPP-7745','RPP-7750',
+      'RPP-7833','RPP-7834','RPP-8044','RPP-8045'],
+    // Todo el roadmap de Staff GSEE es, por definición, área GSEE — igual que Cynthia, se
+    // clasifica así de una vez en vez de quedar "sin categoría".
+    defaultGseeCategory: 'GSEE'},
+];
+
+// Responsable real y descripción larga de cada uno de los 8 RPP de Staff GSEE, según la
+// hoja "Iniciativas 2027-2030_año.xlsx" que compartió Ale. Estos RPP se quedan clasificados
+// como GSEE en una pestaña independiente (no se reparten a otro PM), pero cada uno sí tiene
+// una persona dando seguimiento — se muestra como dato informativo en el detalle.
+const STAFF_GSEE_INFO = {
+  'RPP-7742': {responsable:'Zaira', descripcion:'Desarrollo de los requerimientos en TASY–SAP para los modelos ambulatorios, correspondientes al GAP identificado entre la funcionalidad actual (AS IS) y la funcionalidad esperada conforme a la definición del proceso futuro (TO BE).'},
+  'RPP-7744': {responsable:'Mavi', descripcion:'Automatización del proceso de credencialización de médicos con base a los procesos futuros definidos, habilitando una base de datos centralizada de médicos, que pueda ser consumida por las distintas áreas y procesos satélite.'},
+  'RPP-7745': {responsable:'Mavi', descripcion:'Habilitación de un portal para la gestión de aseguradoras, que permita optimizar la interacción, seguimiento y administración de procesos asociados con terceros pagadores.'},
+  'RPP-7750': {responsable:'Zaira', descripcion:'Migración de MEDSYS hacia el modelo TASY–SAP, considerando la separación de las Unidades de Negocio en los componentes de SSFF | Cloud, así como la habilitación de la atención al paciente vía Centro de Contacto. Adicionalmente, contemplar la infraestructura requerida para soportar la operación en sitio.'},
+  'RPP-7833': {responsable:'Ale', descripcion:'Implementar una iniciativa de automatización para la validación inteligente de estados de cuenta previo a su presentación ante aseguradoras, permitiendo detectar de forma anticipada desviaciones, excepciones y posibles inconsistencias en la facturación y consumo de servicios médicos.'},
+  'RPP-7834': {responsable:'Ale', descripcion:'Iniciativa enfocada en evolucionar la Mesa de Ayuda mediante la integración de capacidades de Inteligencia Artificial con Five9, permitiendo una atención telefónica más ágil, automatizada y eficiente.'},
+  'RPP-8044': {responsable:'Zaira', descripcion:'Migración de MYLE hacia el modelo TASY–SAP, considerando la infraestructura requerida para soportar la operación en sitio.'},
+  'RPP-8045': {responsable:'Cynthia', descripcion:'Renovación automovilística. Modelo: Chevrolet Tornado, Año: 2012, Color: Blanco con leyenda de Christus Muguerza.'},
+};
+
+// PM "virtual" para la vista General: junta lo último guardado en el navegador de cada PM
+// de PM_LIST en un solo dashboard. No tiene archivo propio ni aparece en PM_LIST porque no
+// se sube un Excel para él directamente.
+const GENERAL_PM = {id:'general', name:'General', short:'General', firstName:'General', color:'#5C2B60', initials:'GN', scopeKpisToYear: true};
+
+function getGreeting(){
+  const h = new Date().getHours();
+  if(h < 12) return 'Buenos días';
+  if(h < 19) return 'Buenas tardes';
+  return 'Buenas noches';
+}
+
+const FIELD_CANDIDATES = {
+  rpp: ['no. rpp','no rpp','rpp'],
+  anio: ['ano de presupuesto','anio de presupuesto'],
+  proyecto: ['nombre del proyecto'],
+  idProyecto: ['id de proyecto'],
+  estatus: ['estatus'],
+  tipoTarea: ['tipo de tarea'],
+  solicitante: ['nombre del solicitante'],
+  prioridad: ['prioridad'],
+  tipoProyecto: ['tipo de proyecto'],
+  construccion: ['construccion'],
+  mantenimiento: ['mantenimiento'],
+  biomedica: ['biomedica'],
+  ti: ['ti'],
+  creadoPor: ['creado por'],
+  descripcion: ['descripcion'],
+  comentarios: ['comentarios ti','comentarios'],
+  alcance: ['alcance un','alcance'],
+  gseeInfra: ['gsee/infra','infra/gsee','gsee infra','infra gsee','gsse/infra','infra/gsse','gsse infra','infra gsse','gsse','gsee / infra','infra / gsee','gerencia ti'],
+  unidadServicio: ['unidad de servicio'],
+  // Alexia: su archivo no trae una columna con nombre "GSEE/INFRA"; reutilizaron la
+  // columna "Área" para guardar ahí "GSEE"/"INFRAESTRUCTURA"/"INFRA" (confirmado con datos
+  // reales: 34 GSEE, 84+4 INFRA). Solo se usa como respaldo vía PM_LIST.gseeInfraField, no
+  // reemplaza la columna real de GSEE/INFRA de otros PM.
+  areaGseeInfra: ['area'],
+  // Columna nueva que todavía no existe en los Excel — la van a agregar los PMs. Hasta que
+  // la agreguen con uno de estos nombres, el campo queda vacío sin romper nada.
+  estatusGsee: ['estatus gsee','estatus interno','estatus seguimiento','nuestro estatus'],
+  // Columnas que Alexis agregó a su archivo (formato "query" ancho). Si no existen en el
+  // Excel de otro PM, el índice sale -1 y el campo queda vacío sin romper nada.
+  aplicaTI: ['aplica ti'],
+  estatusConstruccion: ['estatus construccion'],
+  estatusMtto: ['estatus mtto'],
+  estatusBiomedica: ['estatus biomedica'],
+  estatusTI: ['estatus ti'],
+  montoConstruccion: ['monto estimado de inversion i&c'],
+  montoMtto: ['monto estimado de inversion mtto'],
+  montoBiomedica: ['monto estimado de inversion biomedica'],
+  montoTI: ['monto estimado de inversion ti'],
+  validacionTI: ['validacion ti'],
+  validacionGsee: ['validacion gsee'],
+  // Flujo de aprobación que Alexis agregó (por ahora vacío en el archivo, se va a ir
+  // llenando). Solo existe en la hoja "Concentrado"/"Concentrado2".
+  definicionAlcance: ['definicion de alcance'],
+  elaboracionParametrico: ['elaboracion de parametrico'],
+  // "Notificación Adm TI" (Alexia, abreviado) vs "Notificación a Administración TI" (Alexis,
+  // completo) — mismo campo, dos formas de escribirlo.
+  notificacionAdminTI: ['notificacion a administracion ti','notificacion adm ti'],
+  // "Carga Paramétrico PowerAPPS" (Alexia, sin "de") vs "Carga de Parametrico en PowerApps"
+  // (Alexis, completo) — mismo campo también.
+  cargaParametrico: ['carga de parametrico en powerapps','carga de parametrico','carga parametrico powerapps'],
+  // Presupuesto Sugerido viene lleno en (casi) todas las filas del archivo de Alexis; las
+  // fechas vienen como número de serie de Excel y se convierten con formatDate().
+  presupuestoSugerido: ['presupuesto sugerido capex'],
+  fechaCompra: ['fecha de compra'],
+  fechaInstalacion: ['fecha de instalacion'],
+  fechaCreado: ['creado'],
+};
+
+const ESTATUS_GSEE_ORDER = ['Por iniciar','En proceso','En revisión interna','En revisión gerencia','Terminado'];
+
+const PAGE_SIZE = 25;
+
+/* ===================== STATE ===================== */
+const App = {
+  pm: null,
+  rows: [],
+  filtered: [],
+  page: 1,
+  sortKey: 'unidad',
+  sortDir: 1,
+  currentUnit: '',
+  chartUnidad: null,
+  chartTarea: null,
+  chartTipoProy: null,
+  chartGsee: null,
+  chartGseeEstatus: null,
+  // Filtro propio de la tarjeta "Flujo GSEE" ('actual' = solo el año vigente, 'todos' = sin
+  // límite de año) — independiente de los demás KPIs, para que cada quien lo vea como
+  // necesite sin tener que tocar código (ver renderGseeEstatusChart).
+  flujoAnioFilter: 'actual',
+  // Presupuesto real por RPP sacado de las plantillas A/B (ver parseBudgetTemplateWorkbook):
+  // { 'RPP-7509': { total: 83943.84, parts: [{fileName, plantilla, monto}, ...] } }.
+  // Independiente por PM (ver getBudgetTemplatesForPm/STORAGE_PREFIX): lo que se sube en el
+  // dashboard de Zaira NO se mezcla con lo de Alexia ni con los demás — cada PM tiene su
+  // propio balde guardado bajo su propia llave de localStorage. En la vista General, cada
+  // fila usa el balde del PM del que en realidad viene (ver resolveBudgetTemplate).
+  budgetTemplatesByPm: {},
+
+  /* ---------- navigation ---------- */
+  // fromPopstate=true significa que la llamada viene del botón "atrás/adelante" del
+  // navegador (ver listener de 'popstate' más abajo): en ese caso no se debe volver a
+  // empujar una entrada al historial, o se generaría un loop entre back y forward.
+  goToLogin(fromPopstate){
+    // Si viene del botón atrás del navegador, no se borra el PM/datos en memoria: así,
+    // si el usuario le da "adelante" otra vez, se puede volver a mostrar su pantalla de
+    // carga o dashboard tal como estaban, en vez de perder el progreso.
+    if(!fromPopstate){
+      this.pm = null;
+      this.rows = [];
+    }
+    document.getElementById('file-input').value = '';
+    document.getElementById('upload-status').textContent = '';
+    document.getElementById('upload-status').className = 'upload-status';
+    this.showScreen('screen-login');
+    if(!fromPopstate) history.pushState({screen:'screen-login'}, '', '#login');
+  },
+  goToUpload(fromPopstate){
+    // Si no se limpia el input, volver a elegir el mismo archivo (p.ej. tras editarlo
+    // y guardarlo con el mismo nombre) no dispara el evento 'change' y la carga no ocurre.
+    document.getElementById('file-input').value = '';
+    document.getElementById('upload-status').textContent = '';
+    document.getElementById('upload-status').className = 'upload-status';
+    this.showScreen('screen-upload');
+    if(!fromPopstate) history.pushState({screen:'screen-upload'}, '', '#upload');
+  },
+  showScreen(id){
+    document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+  },
+  selectPM(pm){
+    this.pm = pm;
+    const av = document.getElementById('upload-pm-avatar');
+    av.textContent = pm.initials;
+    av.style.background = pm.color;
+    document.getElementById('upload-pm-area').textContent = pm.name;
+    document.getElementById('upload-pm-title').innerHTML = 'Carga el archivo CAPEX<em>Unidades a cargo de ' + pm.short + '</em>';
+    document.getElementById('dash-pm-name').textContent = pm.name;
+    document.getElementById('dash-pm-av').textContent = pm.initials;
+    document.getElementById('dash-subtitle').textContent = `${getGreeting()}, ${pm.firstName} · CHRISTUS MUGUERZA`;
+    this.goToUpload();
+    this.renderLastUploadBox();
+  },
+
+  // Vista "General": junta lo último guardado en el navegador de cada PM (ver
+  // saveToStorage/readStorage) en un solo dashboard, sin pedir subir ningún archivo. No
+  // reemplaza el flujo normal por PM — cada uno sigue subiendo el suyo por separado.
+  selectGeneral(){
+    this.pm = GENERAL_PM;
+    const combinedRows = [];
+    const missing = [];
+    const seenRpp = new Set();
+    let latestSave = 0;
+    // Staff GSEE es un roadmap curado de RPP que casi siempre YA pertenecen al portafolio
+    // de algún PM (p.ej. Cynthia) — se procesa al final para que, si un mismo RPP aparece
+    // en ambos, gane la versión del PM dueño y no se cuente dos veces.
+    PM_LIST.forEach(pm=>{
+      const saved = this.readStorage(pm.id);
+      if(saved && saved.rows && saved.rows.length){
+        // Se marca de qué PM viene cada fila para poder distinguirlas una vez mezcladas
+        // (columna "PM" en la tabla y en las listas de detalle).
+        const nuevas = saved.rows.filter(r=>{
+          if(r.rpp && seenRpp.has(r.rpp)) return false;
+          if(r.rpp) seenRpp.add(r.rpp);
+          return true;
+        });
+        nuevas.forEach(r=>{ r.pmOrigen = pm.short; });
+        combinedRows.push(...nuevas);
+        if(saved.savedAt > latestSave) latestSave = saved.savedAt;
+      } else {
+        missing.push(pm.short);
+      }
+    });
+
+    const av = document.getElementById('dash-pm-av');
+    av.textContent = GENERAL_PM.initials;
+    document.getElementById('dash-pm-name').textContent = GENERAL_PM.name;
+    document.getElementById('dash-subtitle').textContent = 'Concentrado de los 4 PM · CHRISTUS MUGUERZA';
+
+    const banner = document.getElementById('general-missing-banner');
+    if(missing.length){
+      banner.style.display = 'flex';
+      banner.innerHTML = `<i class="ti ti-alert-triangle" aria-hidden="true"></i><span>Faltan por cargar: <strong>${escapeHtml(missing.join(', '))}</strong>. Se muestra el concentrado de lo que sí está guardado; cuando esos PM suban su archivo, se van a sumar aquí automáticamente.</span>`;
+    } else {
+      banner.style.display = 'none';
+    }
+
+    this.loadData(combinedRows, [], {skipSave: true});
+  },
+
+  /* ---------- guardado en el navegador (localStorage) ----------
+     Cada archivo cargado se guarda por PM para poder volver a ver ese dashboard sin
+     tener que resubir el Excel cada vez; también es lo que alimenta la vista "General"
+     que junta lo último guardado de los 4 PMs. */
+  STORAGE_PREFIX: 'capexDash_v1_',
+  saveToStorage(){
+    if(!this.pm || !this.pm.id) { console.warn('saveToStorage: pm no definido'); return; }
+    try{
+      const payload = { pmId: this.pm.id, rows: this.rows, summaryRows: this.summaryRows || [], savedAt: Date.now() };
+      const json = JSON.stringify(payload);
+      const compressed = (typeof LZString !== 'undefined')
+        ? LZString.compressToUTF16(json)
+        : json;
+      console.log(`saveToStorage: ${this.pm.id} — ${(json.length/1024).toFixed(1)} KB → ${(compressed.length/1024).toFixed(1)} KB comprimido`);
+      localStorage.setItem(this.STORAGE_PREFIX + this.pm.id, compressed);
+      const banner = document.getElementById('storage-warning-banner');
+      if(banner) banner.style.display = 'none';
+    } catch(e){
+      // Cuota de localStorage excedida: el navegador tiene un límite chico para páginas
+      // abiertas como archivo local (a veces unos pocos MB), y con varios PM cargados a la
+      // vez se puede llenar. Antes esto fallaba en silencio — parecía que "se borraba" la
+      // información porque nunca se guardó, no porque se haya perdido algo que sí se guardó.
+      // Ahora se avisa para que se sepa que hay que liberar espacio (ver limpiarPmGuardado).
+      this.showStorageWarning();
+    }
+  },
+  readStorage(pmId){
+    try{
+      const raw = localStorage.getItem(this.STORAGE_PREFIX + pmId);
+      if(!raw) return null;
+      // Intentar descomprimir; si falla o no hay LZString, asumir que es JSON plano
+      let json = raw;
+      if(typeof LZString !== 'undefined'){
+        const dec = LZString.decompressFromUTF16(raw);
+        if(dec) json = dec;
+      }
+      return JSON.parse(json);
+    } catch(e){ return null; }
+  },
+
+  /* ---------- plantillas de presupuesto (Plantilla A / Plantilla B por RPP) ----------
+     Cada plantilla trae, en su hoja "Información General", una fila "Proyecto:" (a veces
+     con el RPP adentro) y una fila "INVERSIÓN AÑO 1" (el monto ya con reserva). Plantilla A
+     y B son complementarias (equipo/licencias vs. outsourcing/mano de obra), así que el
+     presupuesto real de un RPP es la suma de las que existan para ese RPP — no son
+     duplicados ni alternativas entre sí. */
+  // Trae (o carga de localStorage la primera vez que se pide) el balde de plantillas de un
+  // PM específico. Cada PM tiene su propia llave — nada se comparte entre PMs.
+  getBudgetTemplatesForPm(pmId){
+    if(!this.budgetTemplatesByPm[pmId]){
+      try{
+        const raw = localStorage.getItem('capexDash_v1_budgetTemplates_'+pmId);
+        this.budgetTemplatesByPm[pmId] = raw ? JSON.parse(raw) : {};
+      } catch(e){ this.budgetTemplatesByPm[pmId] = {}; }
+    }
+    return this.budgetTemplatesByPm[pmId];
+  },
+  saveBudgetTemplatesForPm(pmId){
+    try{ localStorage.setItem('capexDash_v1_budgetTemplates_'+pmId, JSON.stringify(this.getBudgetTemplatesForPm(pmId))); }
+    catch(e){ this.showStorageWarning(); }
+  },
+  // Aviso visible cuando falla un guardado por falta de espacio — antes se perdía en
+  // silencio. Ofrece un botón para borrar los PM guardados que no se estén usando ahora, y
+  // así liberar espacio para el que sí se acaba de subir.
+  showStorageWarning(){
+    const banner = document.getElementById('storage-warning-banner');
+    if(!banner) return;
+    banner.style.display = 'flex';
+    banner.innerHTML = `<i class="ti ti-alert-triangle" aria-hidden="true"></i><span>No se pudo guardar esta carga en el navegador — se quedó sin espacio (esto pasa seguido en páginas abiertas como archivo local, con varios PM cargados a la vez). Lo que ves ahora sí está completo, pero <strong>si recargas la página o cierras la pestaña, se puede perder</strong>. <span class="row-link" id="storage-warning-clear" style="margin-left:4px;">Borrar PM guardados para liberar espacio →</span></span>`;
+    const link = document.getElementById('storage-warning-clear');
+    if(link) link.onclick = ()=>this.clearAllSavedPms();
+  },
+  clearAllSavedPms(){
+    if(!confirm('¿Borrar TODA la información guardada en este navegador de los 5 PM (incluidas sus plantillas de presupuesto)? Lo que tengas abierto ahora mismo no se pierde, pero sí tendrás que volver a subir el resto la próxima vez que entres a cada uno.')) return;
+    const prefixes = [this.STORAGE_PREFIX, 'capexDash_v1_budgetTemplates_'];
+    const toRemove = [];
+    for(let i=0;i<localStorage.length;i++){
+      const k = localStorage.key(i);
+      if(prefixes.some(p=>k.startsWith(p))) toRemove.push(k);
+    }
+    toRemove.forEach(k=>localStorage.removeItem(k));
+    this.budgetTemplatesByPm = {};
+    document.getElementById('storage-warning-banner').style.display = 'none';
+    this.saveToStorage();
+    if(this.pm) this.saveBudgetTemplatesForPm(this.pm.id);
+  },
+  // En la vista General cada fila trae su PM de origen en r.pmOrigen (el "short" de
+  // PM_LIST, p.ej. "Zaira F.") — se usa para ir a buscar la plantilla al balde del PM
+  // correcto, no al de quien esté viendo la pantalla en ese momento.
+  resolveBudgetTemplate(row){
+    let pmId = this.pm.id;
+    if(pmId === 'general'){
+      const originPm = PM_LIST.find(p=>p.short === row.pmOrigen);
+      if(originPm) pmId = originPm.id;
+    }
+    if(pmId){
+      const own = this.getBudgetTemplatesForPm(pmId)[row.rpp];
+      if(own) return own;
+    }
+    // Respaldo: la plantilla de un RPP a veces se sube desde el dashboard de OTRO PM (p.ej.
+    // RPP-6507 es de Alexia por unidad, pero la plantilla se subió viendo el dashboard de
+    // Zaira, porque ella lleva ese trámite en específico). Si no está en el balde del dueño
+    // del RPP, se busca en los demás baldes antes de darlo por no cargado — así no se pierde
+    // presupuesto real solo porque se subió desde la pantalla de otro PM.
+    for(const pm of PM_LIST){
+      if(pm.id === pmId) continue;
+      const tpl = this.getBudgetTemplatesForPm(pm.id)[row.rpp];
+      if(tpl) return tpl;
+    }
+    return null;
+  },
+  clearBudgetTemplates(){
+    if(!confirm(`¿Borrar todas las plantillas de presupuesto cargadas para ${this.pm.name}? Esto no se puede deshacer.`)) return;
+    this.budgetTemplatesByPm[this.pm.id] = {};
+    this.saveBudgetTemplatesForPm(this.pm.id);
+    this.renderKpis();
+  },
+  // Busca en toda la hoja, celda por celda, una etiqueta exacta y devuelve el primer valor
+  // no vacío a su derecha — así no importa en qué columna caiga (algunas plantillas viejas
+  // traen todo corrido una columna respecto a las nuevas).
+  findLabelValue(data, labelNormalized){
+    for(const row of data){
+      if(!row) continue;
+      for(let c=0; c<row.length; c++){
+        if(normalize(row[c]) === labelNormalized){
+          for(let c2=c+1; c2<row.length; c2++){
+            const v = row[c2];
+            if(v !== '' && v != null) return v;
+          }
+        }
+      }
+    }
+    return null;
+  },
+  parseBudgetTemplateWorkbook(wb, fileName){
+    const sheetName = wb.SheetNames.find(n=>normalize(n).indexOf('informacion general')>=0);
+    if(!sheetName) return null;
+    const data = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], {header:1, defval:''});
+
+    // Plantilla A o B: lo dice el título en la primera fila con contenido de la hoja.
+    const headerText = data.slice(0,3).map(r=>(r||[]).join(' ')).join(' ');
+    const plantilla = /plantilla\s*a\b/i.test(headerText) ? 'A' : /plantilla\s*b\b/i.test(headerText) ? 'B' : '';
+
+    // RPP: primero se intenta con lo que diga "Proyecto:" o "Nombre del Archivo:" adentro
+    // del Excel; si no trae el número (algunas plantillas viejas solo ponen el nombre corto
+    // del proyecto), se saca del nombre del archivo como respaldo.
+    let rpp = null;
+    const proyectoVal = this.findLabelValue(data, 'proyecto:') || this.findLabelValue(data, 'nombre del archivo:');
+    let mRpp = proyectoVal ? /RPP[\s-]?(\d{3,6})/i.exec(String(proyectoVal)) : null;
+    if(mRpp) rpp = 'RPP-'+mRpp[1];
+    if(!rpp){
+      mRpp = /RPP[\s_-]?(\d{3,6})/i.exec(fileName) || /(\d{3,6})/.exec(fileName);
+      if(mRpp) rpp = 'RPP-'+mRpp[1];
+    }
+    if(!rpp) return null;
+
+    const montoRaw = this.findLabelValue(data, 'inversion ano 1');
+    const monto = typeof montoRaw === 'number' ? montoRaw : parseFloat(montoRaw);
+    if(!(monto >= 0)) return null;
+
+    return {rpp, plantilla, monto, fileName};
+  },
+  ingestBudgetTemplateResult(result){
+    if(!result) return;
+    // Se guarda en el balde del PM que está activo en este momento (this.pm.id) — así lo
+    // que subas viendo el dashboard de Zaira se queda solo en Zaira, aunque el RPP en teoría
+    // pertenezca a otro PM. En la vista General no tiene sentido subir plantillas (no hay un
+    // PM "dueño" claro), así que ahí no se debería llamar a esto (ver botón deshabilitado).
+    const bucket = this.getBudgetTemplatesForPm(this.pm.id);
+    const entry = bucket[result.rpp] || {parts: []};
+    // Si ya había una parte del mismo tipo (A o B) para este RPP, se reemplaza en vez de
+    // sumarla — cubre tanto resubir el mismo archivo como una versión más nueva con otro
+    // nombre. Si no se pudo detectar el tipo (plantilla=''), se dedupe por nombre de
+    // archivo nada más, para no perder partes distintas sin tipo identificado.
+    entry.parts = entry.parts.filter(p=>
+      result.plantilla ? p.plantilla !== result.plantilla : p.fileName !== result.fileName
+    );
+    entry.parts.push({fileName: result.fileName, plantilla: result.plantilla, monto: result.monto});
+    entry.total = entry.parts.reduce((s,p)=>s+(p.monto||0), 0);
+    bucket[result.rpp] = entry;
+  },
+  // Acepta .xlsx/.xlsm/.xls sueltos Y carpetas comprimidas .zip (las expande primero con
+  // JSZip y toma cada Excel que traiga adentro, en cualquier subcarpeta) — así se puede
+  // subir de una vez el ZIP completo que exporta OneDrive/Teams en vez de sacar los
+  // archivos uno por uno.
+  async handleBudgetTemplateFiles(fileList){
+    const files = Array.from(fileList||[]);
+    if(!files.length) return;
+    const status = document.getElementById('upload-status');
+    const entries = await expandFilesAndZips(files);
+
+    let ok = 0; const failed = entries.zipErrors.slice();
+    for(const entry of entries.files){
+      try{
+        const buf = await entry.getBuffer();
+        const wb = XLSX.read(new Uint8Array(buf), {type:'array', cellDates:false});
+        const result = this.parseBudgetTemplateWorkbook(wb, entry.name);
+        if(result){ this.ingestBudgetTemplateResult(result); ok++; }
+        else failed.push(entry.name);
+      } catch(err){ failed.push(entry.name); }
+    }
+
+    this.saveBudgetTemplatesForPm(this.pm.id);
+    this.renderKpis();
+    if(status){
+      status.className = failed.length ? 'upload-status err' : 'upload-status ok';
+      status.textContent = failed.length
+        ? `Se cargaron ${ok} de ${ok+failed.length} plantillas para ${this.pm.name}. No se pudo leer: ${failed.join(', ')}`
+        : `Se cargaron ${ok} plantilla(s) de presupuesto correctamente para ${this.pm.name}.`;
+    }
+  },
+  // Carga unificada desde la pantalla de "Cargar archivo CAPEX": acepta el Excel principal
+  // suelto (como antes), o una carpeta/ZIP completa del PM que traiga junto el Excel
+  // principal Y sus plantillas de presupuesto — se detecta cada archivo por su contenido
+  // (no por nombre): si tiene hojas con "No. RPP"+"Nombre del Proyecto" es el principal, si
+  // tiene hoja "Información General" es una plantilla de presupuesto A/B.
+  async handleUnifiedUpload(fileList){
+    const files = Array.from(fileList||[]);
+    if(!files.length) return;
+    const status = document.getElementById('upload-status');
+    status.className = 'upload-status';
+    status.textContent = 'Dame un segundo, estoy revisando ' + files.length + ' archivo(s)...';
+
+    const entries = await expandFilesAndZips(files);
+    let mainLoaded = false, mainRows = 0;
+    let templatesOk = 0;
+    const unrecognized = entries.zipErrors.slice();
+    const extraMainFiles = [];
+    const mainCandidates = []; // {name, wb} — se procesan DESPUÉS de las plantillas
+
+    // Pasada 1: se leen todos los archivos y se separan plantillas de candidatos a
+    // principal. Las plantillas se ingestan de una vez — importa que esto pase ANTES de
+    // parsear el archivo principal, porque parseWorkbook usa budgetTemplates para decidir
+    // si incluir un RPP fuera de la unidad de servicio habitual del PM (ver excepción de
+    // "tieneTemplate" ahí) — si se procesara al revés, esa excepción nunca vería nada.
+    for(const entry of entries.files){
+      let buf, wb;
+      try{
+        buf = await entry.getBuffer();
+        wb = XLSX.read(new Uint8Array(buf), {type:'array', cellDates:false, cellStyles:true});
+      } catch(err){ unrecognized.push(entry.name); continue; }
+
+      const tplSheet = wb.SheetNames.find(n=>normalize(n).indexOf('informacion general')>=0);
+      if(tplSheet){
+        const result = this.parseBudgetTemplateWorkbook(wb, entry.name);
+        if(result){ this.ingestBudgetTemplateResult(result); templatesOk++; }
+        else unrecognized.push(entry.name);
+      } else {
+        mainCandidates.push({name: entry.name, wb});
+      }
+    }
+
+    // Pasada 2: ahora sí el/los archivo(s) principal(es), con budgetTemplates ya cargado.
+    for(const {name, wb} of mainCandidates){
+      const parsed = this.parseWorkbook(wb);
+      if(parsed.rows && parsed.rows.length){
+        if(!mainLoaded){
+          this.loadData(parsed.rows, parsed.summaryRows);
+          mainLoaded = true;
+          mainRows = parsed.rows.length;
+        } else {
+          // Ya se cargó un archivo principal — este es otro candidato, se avisa pero no se
+          // mezcla (mezclar dos archivos "principales" distintos podría duplicar RPPs).
+          extraMainFiles.push(name);
+        }
+      } else {
+        unrecognized.push(name);
+      }
+    }
+
+    this.saveBudgetTemplatesForPm(this.pm ? this.pm.id : null);
+    if(mainLoaded) this.renderKpis();
+
+    const parts = [];
+    if(mainLoaded) parts.push(`archivo principal cargado (${mainRows.toLocaleString('es-MX')} solicitudes)`);
+    if(templatesOk) parts.push(`${templatesOk} plantilla(s) de presupuesto`);
+    if(extraMainFiles.length) parts.push(`${extraMainFiles.length} archivo(s) que parecían principales pero se ignoraron (ya había uno): ${extraMainFiles.join(', ')}`);
+    if(unrecognized.length) parts.push(`no se pudo leer: ${unrecognized.join(', ')}`);
+
+    const ecoStatus = document.getElementById('ecosistema-status');
+    const ecoScreen = document.getElementById('screen-ecosistema-upload');
+    const fromEco = ecoScreen && ecoScreen.classList.contains('active');
+
+    if(!mainLoaded){
+      const msg = 'No encontré el archivo principal (con "No. RPP" y "Nombre del Proyecto"). ' +
+        (templatesOk ? `Sí se cargaron ${templatesOk} plantilla(s) de presupuesto.` : 'Revisa que el ZIP traiga el Excel de detalle.');
+      status.className = 'upload-status err';
+      status.textContent = msg;
+      if(fromEco && ecoStatus){ ecoStatus.textContent = msg; ecoStatus.style.display = 'block'; }
+    } else {
+      status.className = 'upload-status ok';
+      status.textContent = 'Listo: ' + parts.join(' · ') + '.';
+      if(fromEco && ecoStatus){ ecoStatus.style.display = 'none'; }
+    }
+  },
+  openBudgetList(){
+    document.getElementById('budget-count-label').textContent = '';
+    const tbody = document.getElementById('budget-table-body');
+    // Solo RPP con plantilla real cargada — ya no se rellena con el estimado por montos de
+    // área, ese número se dejó de mostrar en todo el KPI de presupuesto. Se listan de
+    // TODOS los años (no solo el vigente), con el año de cada uno en su propia columna.
+    const rowsWithRpp = this.rows.filter(r=>r.rpp);
+    const seen = new Set();
+    const items = [];
+    rowsWithRpp.forEach(r=>{
+      if(seen.has(r.rpp)) return;
+      seen.add(r.rpp);
+      const tpl = this.resolveBudgetTemplate(r);
+      if(!tpl) return;
+      const a = tpl.parts.find(p=>p.plantilla==='A');
+      const b = tpl.parts.find(p=>p.plantilla==='B');
+      items.push({rpp: r.rpp, proyecto: r.proyecto, unidad: r.unidad, anio: r.anio, a: a?a.monto:null, b: b?b.monto:null, total: tpl.total});
+    });
+    items.sort((x,y)=>y.total-x.total);
+    document.getElementById('budget-count-label').textContent = `(${items.length})`;
+    tbody.innerHTML = items.length ? items.map((it,i)=>`<tr>
+      <td>${i+1}</td>
+      <td>${escapeHtml(it.rpp)}</td>
+      <td class="proj-name">${escapeHtml(it.proyecto)}</td>
+      <td><span class="unidad-tag">${escapeHtml(it.unidad)}</span></td>
+      <td>${escapeHtml(it.anio)||'—'}</td>
+      <td>${it.a!=null?formatMoney(it.a):'—'}</td>
+      <td>${it.b!=null?formatMoney(it.b):'—'}</td>
+      <td><b>${formatMoney(it.total)}</b></td>
+    </tr>`).join('') : `<tr class="empty-row"><td colspan="8">No hay plantillas cargadas todavía.</td></tr>`;
+    document.getElementById('modal-budget-bg').classList.add('active');
+  },
+  closeBudgetList(){ document.getElementById('modal-budget-bg').classList.remove('active'); },
+
+  renderLastUploadBox(){
+    const box = document.getElementById('last-upload-box');
+    if(!box) return;
+    const saved = this.pm ? this.readStorage(this.pm.id) : null;
+    if(!saved || !saved.rows || !saved.rows.length){ box.style.display = 'none'; return; }
+    box.style.display = 'flex';
+    document.getElementById('last-upload-sub').textContent =
+      `${saved.rows.length.toLocaleString('es-MX')} solicitudes · guardado el ${formatSavedDate(saved.savedAt)}`;
+  },
+  useLastUpload(){
+    const saved = this.pm ? this.readStorage(this.pm.id) : null;
+    if(!saved) return;
+    this.loadData(saved.rows, saved.summaryRows || []);
+  },
+
+  /* ---------- modal ---------- */
+  openModal(row){
+    document.getElementById('modal-title').textContent = row.proyecto || '(Sin nombre de proyecto)';
+    document.getElementById('modal-sub').textContent = [row.unidad, row.rpp, row.anio].filter(Boolean).join(' · ');
+    const grid = document.getElementById('modal-grid');
+    const fields = [
+      ['Solicitante', row.solicitante], ['Responsable', row.responsable],
+      ['Estado de revisión', row.descartado ? 'Descartado de este ciclo (sigue en radar si aplica TI)' : row.enValidacion ? 'En validación con la unidad' : ''],
+      ['Año', row.anio],
+      ['Id de proyecto', row.idProyecto], ['Creado por', row.creadoPor],
+      ['Tipo de tarea', row.tipoTarea], ['Tipo de proyecto', row.tipoProyecto],
+      ['Prioridad', row.prioridad], ['Estatus', row.estatus],
+      ['GSEE / INFRA', row.gseeInfra], ['Estatus GSEE', row.estatusGsee],
+      // Columnas que solo vienen en el archivo de Alexis; en otros PMs salen vacías y no se muestran.
+      ['Aplica TI', row.aplicaTI],
+      ['Estatus Construcción', row.estatusConstruccion], ['Estatus Mantenimiento', row.estatusMtto],
+      ['Estatus Biomédica', row.estatusBiomedica], ['Estatus TI', row.estatusTI],
+      ['Monto Construcción', formatMoney(row.montoConstruccion)], ['Monto Mantenimiento', formatMoney(row.montoMtto)],
+      ['Monto Biomédica', formatMoney(row.montoBiomedica)], ['Monto TI', formatMoney(row.montoTI)],
+      ['Validación TI', row.validacionTI], ['Validación GSEE', row.validacionGsee],
+      ['Definición de alcance', row.definicionAlcance], ['Elaboración de Paramétrico', row.elaboracionParametrico],
+      ['Notificación a Administración TI', row.notificacionAdminTI], ['Carga de paramétrico en PowerApps', row.cargaParametrico],
+      ['Presupuesto Sugerido CAPEX (total de la unidad)', formatMoney(row.presupuestoSugerido)],
+      ['Fecha de compra', formatDate(row.fechaCompra)], ['Fecha de instalación', formatDate(row.fechaInstalacion)],
+      ['Fecha de creación', formatDate(row.fechaCreado)],
+    ];
+    grid.innerHTML = fields.filter(f=>f[1]).map(f=>`<div class="mf"><div class="l">${f[0]}</div><div class="v">${escapeHtml(f[1])}</div></div>`).join('');
+    const blocks = [['Descripción', row.descripcion], ['Comentarios', row.comentarios], ['Alcance', row.alcance]];
+    document.getElementById('modal-extra').innerHTML = blocks.filter(b=>b[1]).map(b=>
+      `<div class="modal-block"><div class="l">${b[0]}</div><div class="v">${escapeHtml(b[1])}</div></div>`).join('');
+    document.getElementById('modal-bg').classList.add('active');
+  },
+  closeModal(){ document.getElementById('modal-bg').classList.remove('active'); },
+
+  /* ---------- file parsing ---------- */
+  parseWorkbook(wb){
+    const rows = [];
+    // Hojas tipo "Concentrado" (un mismo PM junta todas sus unidades en una sola pestaña):
+    // no se mezclan con el detalle para no contar dos veces la misma solicitud, pero se
+    // guardan aparte para poder mostrarlas como resumen consolidado.
+    const summaryRows = [];
+    // Normaliza valores que solo difieren en mayúsculas/minúsculas (p.ej. "RECHAZADO" vs
+    // "rechazado" vs "Rechazado") a una sola forma canónica, para que no se traten como
+    // categorías distintas en los filtros y las gráficas.
+    const canonEstatus = canonicalizer();
+    const canonTarea = canonicalizer();
+    const canonTipoProy = canonicalizer();
+    const canonEstatusGsee = canonicalizer();
+    // Algunos archivos (Zaira) repiten exactamente el mismo export en más de una hoja
+    // ("query (8)"/"query (9)"); con esto evitamos contar dos veces la misma solicitud.
+    const seenRpp = new Set();
+    const seenRppSummary = new Set();
+
+    // ---- Pasada 1: clasifica cada hoja y junta las unidades que YA sabemos que son de
+    // este PM (las que vienen en hojas de una sola unidad), sin construir filas todavía.
+    const sheetInfos = [];
+    const knownUnits = new Set();
+    // Hojas "query (N)" repetidas (Zaira) no siempre son idénticas entre sí — la de número
+    // más alto suele ser el export más reciente y trae columnas más completas (confirmado:
+    // "query (9)" tenía Id de Proyecto lleno en filas donde "query (8)" lo traía vacío). Se
+    // procesan primero las de número más alto para que su versión gane el "primero visto".
+    const sheetProcessingOrder = wb.SheetNames.slice().sort((a, b)=>{
+      const ma = /^query \((\d+)\)$/i.exec(a.trim());
+      const mb = /^query \((\d+)\)$/i.exec(b.trim());
+      return (ma && mb) ? (parseInt(mb[1]) - parseInt(ma[1])) : 0;
+    });
+    sheetProcessingOrder.forEach(sheetName=>{
+      const ws = wb.Sheets[sheetName];
+      const raw = XLSX.utils.sheet_to_json(ws, {header:1, defval:null, blankrows:false});
+      if(!raw.length) return;
+      const headerRow = raw[0].map(h=>h==null?'':String(h));
+      const normHeaders = headerRow.map(normalize);
+
+      // Hoja de detalle: debe tener al menos No. RPP + Nombre del Proyecto.
+      const idxRpp = findIndex(normHeaders, FIELD_CANDIDATES.rpp);
+      const idxProy = findIndex(normHeaders, FIELD_CANDIDATES.proyecto);
+      if(idxRpp<0 || idxProy<0) return;
+
+      const idx = {};
+      Object.keys(FIELD_CANDIDATES).forEach(k=>{ idx[k] = findIndex(normHeaders, FIELD_CANDIDATES[k]); });
+      // Respaldo por PM cuando no hay una columna real de GSEE/INFRA (ver PM_LIST.gseeInfraField).
+      if(this.pm.gseeInfraField && idx.gseeInfra < 0 && idx[this.pm.gseeInfraField] >= 0){
+        idx.gseeInfra = idx[this.pm.gseeInfraField];
+      }
+      // Alexia marca a mano en rojo/verde la celda de "No. RPP" en su hoja "query (1)" para
+      // señalar cuáles descartó y cuáles sigue validando con la unidad — no hay ninguna
+      // columna de texto con ese dato, solo el color de relleno. Se lee directo de la celda
+      // (por valor de RPP, no por índice de fila, porque sheet_to_json salta filas en blanco
+      // y desalinea los índices) y se guarda para usarlo en la Pasada 2.
+      const rppColorMap = new Map();
+      if(idxRpp>=0 && ws['!ref']){
+        const range = XLSX.utils.decode_range(ws['!ref']);
+        for(let R=range.s.r+1; R<=range.e.r; R++){
+          const cell = ws[XLSX.utils.encode_cell({r:R, c:idxRpp})];
+          if(cell && cell.v && cell.s && cell.s.fgColor && cell.s.fgColor.rgb){
+            rppColorMap.set(String(cell.v).trim(), cell.s.fgColor.rgb);
+          }
+        }
+      }
+
+      // Hojas angostas (≤40 columnas, formato Alexia): una hoja = una unidad, sin ambigüedad.
+      // Hojas anchas (>40 columnas): pueden ser (a) una sola unidad ya separada en su propia
+      // hoja —se usa el nombre completo de la columna "Unidad de Servicio"—, o (b) un export
+      // crudo con varias unidades mezcladas (formato "query"/"Concentrado"), que puede traer
+      // TODA la compañía, no solo las unidades de este PM (confirmado: el archivo de Alexia
+      // también trae una hoja "query" con las ~40 unidades de toda CHRISTUS MUGUERZA).
+      let unitMode = 'sheet';
+      let sheetUnits = null;
+      if(headerRow.length > 40){
+        if(idx.unidadServicio < 0) return;
+        sheetUnits = new Set();
+        for(let r=1; r<raw.length; r++){
+          const v = get(raw[r], idx.unidadServicio);
+          if(v) sheetUnits.add(v);
+        }
+        unitMode = sheetUnits.size > 1 ? 'ambiguous' : 'column';
+      }
+
+      if(unitMode === 'sheet') knownUnits.add(sheetName.trim());
+      else if(unitMode === 'column') sheetUnits.forEach(u=>knownUnits.add(u));
+
+      sheetInfos.push({sheetName, raw, idx, unitMode, sheetUnits, rppColorMap});
+    });
+
+    // ---- Pasada 2: construye las filas. Una hoja "ambiguous" (mezcla varias unidades) solo
+    // se usa si el PM tiene lista blanca (Zaira) o si TODAS sus unidades ya son conocidas por
+    // este PM a través de sus propias hojas de una sola unidad (Alexis); si trae aunque sea
+    // una unidad ajena, se descarta la hoja completa para no mezclar trabajo de otros PMs.
+    sheetInfos.forEach(({sheetName, raw, idx, unitMode, sheetUnits, rppColorMap})=>{
+      // Alexis: el detalle real es su "Concentrado2" (hoja "ambiguous" ya validada), no sus
+      // hojas por unidad — esas se ignoran por completo para no duplicar ni usar datos viejos.
+      if(this.pm.preferConsolidado && unitMode !== 'ambiguous') return;
+
+      let effectiveMode = unitMode;
+      let isSummarySheet = false;
+      if(unitMode === 'ambiguous'){
+        if(this.pm.unitWhitelist){
+          effectiveMode = 'column-filtered';
+        } else if(this.pm.rppWhitelist){
+          // "Staff GSEE": no es una unidad ni un PM con archivo propio — es una selección
+          // curada de RPPs puntuales (el roadmap de proyectos estratégicos) dentro del
+          // export completo de la compañía. Se filtra por número de RPP, no por unidad.
+          effectiveMode = 'column';
+        } else if(this.pm.preferConsolidado){
+          // El PM ya declaró que esta es su única fuente real (preferConsolidado); no hace
+          // falta validar unidad por unidad contra sus pestañas por unidad (que de hecho se
+          // ignoran por completo en este modo) — si aparece una unidad nueva sin pestaña
+          // propia (p.ej. "CM Corporativo TI" en el archivo de Alexis), igual se incluye en
+          // vez de descartar la hoja completa.
+          effectiveMode = 'column';
+        } else if([...sheetUnits].every(u=>knownUnits.has(u))){
+          effectiveMode = 'column';
+          isSummarySheet = true;
+        } else {
+          return;
+        }
+      }
+
+      for(let r=1; r<raw.length; r++){
+        const line = raw[r];
+        if(!line) continue;
+        const rpp = get(line, idx.rpp);
+        const proy = get(line, idx.proyecto);
+        if(!rpp && !proy) continue;
+        const dedupSet = isSummarySheet ? seenRppSummary : seenRpp;
+        if(rpp){ if(dedupSet.has(rpp)) continue; dedupSet.add(rpp); }
+
+        const unidad = effectiveMode === 'sheet' ? sheetName.trim() : (get(line, idx.unidadServicio) || sheetName.trim());
+        if(effectiveMode === 'column-filtered' && !this.pm.unitWhitelist.includes(unidad)){
+          // Excepción: si ya se le cargó una plantilla de presupuesto a este RPP para este
+          // PM (ver budgetTemplates), es porque el PM sí lo reconoce como suyo aunque la
+          // unidad no esté en su lista — típico de iniciativas estratégicas de varias
+          // unidades a la vez (p.ej. "Transición CAM", con Unidad de Servicio genérica tipo
+          // "CM Corporativo TI"). Sin esta excepción esas filas se caían silenciosamente y
+          // su plantilla nunca se sumaba al presupuesto real, aunque estuviera cargada.
+          const tieneTemplate = rpp && this.getBudgetTemplatesForPm(this.pm.id)[rpp];
+          if(!tieneTemplate) continue;
+        }
+        if(this.pm.rppWhitelist && !this.pm.rppWhitelist.includes(rpp)) continue;
+
+        // Color a mano en la celda de "No. RPP" (ver rppColorMap arriba): rojo = Alexia lo
+        // descartó de este ciclo de parametrización, verde = lo sigue validando con la
+        // unidad. Es solo informativo — NO se excluye de ningún KPI ni conteo, sigue
+        // aplicando a TI igual que cualquier otro RPP si su columna de TI así lo dice.
+        const rppColor = rpp ? rppColorMap.get(rpp) : null;
+        const descartado = rppColor === 'FF0000';
+        const enValidacion = rppColor === '47D45A';
+
+        // Prioridad para saber si aplica TI: 1) columna "Aplica TI" (Alexis); 2) texto
+        // "sí"/"no" en "Comentarios"/"Comentarios TI" (Alexia); 3) casilla vieja "TI".
+        const comentarioTI = parseSiNoComment(get(line, idx.comentarios));
+        const tiValue = idx.aplicaTI>=0 ? toBool(get(line, idx.aplicaTI))
+          : comentarioTI!==null ? comentarioTI
+          : toBool(get(line, idx.ti));
+        // Si el PM no tiene columna de GSEE/INFRA (ver PM_LIST.defaultGseeCategory), todo su
+        // trabajo se clasifica igual por definición en vez de quedar "sin categoría".
+        let gseeCategoryValue = idx.gseeInfra>=0 ? gseeCategoryOf(get(line, idx.gseeInfra)) : (this.pm.defaultGseeCategory || '');
+        // Si la categoría quedó en blanco (ni GSEE ni INFRA — falta el dato en la columna
+        // "Área"/GSEE-INFRA de esa fila en particular, sea porque el PM no tiene columna real
+        // o porque simplemente no se llenó en ese renglón), pero la fila ya tiene algo
+        // capturado en el flujo de trámite GSEE (Definición de alcance, Notificación TI,
+        // Carga en PowerApps, etc. — ver FLUJO_ETAPAS), es señal de sobra de que esa
+        // solicitud sí es GSEE: nadie llena ese flujo si no es una solicitud GSEE. No se
+        // aplica si la columna ya trae algo (INFRA, Ambos, etc.) — solo rescata blancos.
+        if(!gseeCategoryValue){
+          const flujoFields = ['definicionAlcance','elaboracionParametrico','validacionTI','validacionGsee','notificacionAdminTI','cargaParametrico'];
+          if(flujoFields.some(f=>idx[f]>=0 && get(line, idx[f]))) gseeCategoryValue = 'GSEE';
+        }
+        // Responsable real + descripción larga para el roadmap curado de Staff GSEE (ver
+        // STAFF_GSEE_INFO) — no viene en ninguna columna del Excel, se agregó a mano.
+        const staffGseeInfo = this.pm.id==='staffgsee' ? STAFF_GSEE_INFO[rpp] : null;
+
+        (isSummarySheet ? summaryRows : rows).push({
+          unidad,
+          rpp: rpp || '',
+          anio: get(line, idx.anio) || '',
+          proyecto: proy || '',
+          idProyecto: get(line, idx.idProyecto) || '',
+          estatus: canonEstatus(get(line, idx.estatus)) || 'Sin estatus',
+          tipoTarea: canonTarea(get(line, idx.tipoTarea)) || 'Sin clasificar',
+          solicitante: get(line, idx.solicitante) || '',
+          responsable: staffGseeInfo ? staffGseeInfo.responsable : '',
+          descartado,
+          enValidacion,
+          prioridad: get(line, idx.prioridad) || '',
+          tipoProyecto: canonTipoProy(get(line, idx.tipoProyecto)) || 'Sin clasificar',
+          construccion: toBool(get(line, idx.construccion)),
+          mantenimiento: toBool(get(line, idx.mantenimiento)),
+          biomedica: toBool(get(line, idx.biomedica)),
+          ti: tiValue,
+          creadoPor: get(line, idx.creadoPor) || '',
+          descripcion: (staffGseeInfo && staffGseeInfo.descripcion) || get(line, idx.descripcion) || '',
+          comentarios: get(line, idx.comentarios) || '',
+          alcance: get(line, idx.alcance) || '',
+          gseeInfra: get(line, idx.gseeInfra) || '',
+          gseeCategory: gseeCategoryValue,
+          estatusGsee: canonEstatusGsee(get(line, idx.estatusGsee)) || '',
+          aplicaTI: get(line, idx.aplicaTI) || '',
+          estatusConstruccion: get(line, idx.estatusConstruccion) || '',
+          estatusMtto: get(line, idx.estatusMtto) || '',
+          estatusBiomedica: get(line, idx.estatusBiomedica) || '',
+          estatusTI: get(line, idx.estatusTI) || '',
+          montoConstruccion: get(line, idx.montoConstruccion),
+          montoMtto: get(line, idx.montoMtto),
+          montoBiomedica: get(line, idx.montoBiomedica),
+          montoTI: get(line, idx.montoTI),
+          validacionTI: get(line, idx.validacionTI) || '',
+          validacionGsee: get(line, idx.validacionGsee) || '',
+          definicionAlcance: get(line, idx.definicionAlcance) || '',
+          elaboracionParametrico: get(line, idx.elaboracionParametrico) || '',
+          notificacionAdminTI: get(line, idx.notificacionAdminTI) || '',
+          cargaParametrico: get(line, idx.cargaParametrico) || '',
+          presupuestoSugerido: get(line, idx.presupuestoSugerido),
+          fechaCompra: get(line, idx.fechaCompra),
+          fechaInstalacion: get(line, idx.fechaInstalacion),
+          fechaCreado: get(line, idx.fechaCreado),
+        });
+      }
+    });
+
+    return {rows, summaryRows};
+  },
+
+  loadData(rows, summaryRows, opts){
+    this.rows = rows;
+    this.summaryRows = summaryRows || [];
+    this.currentUnit = '';
+    // No se asume un año fijo: los KPIs y gráficas usan el Año de Presupuesto más frecuente
+    // en el archivo cargado (algunos PM traen varios años mezclados, p.ej. Alexia con
+    // "query (1)" trayendo 2024-2027 juntos). El resto de los años no desaparece: sigue
+    // disponible en la tabla de detalle a través del filtro de año, solo que no se preseleccionan.
+    const anioCounts = {};
+    this.rows.forEach(r=>{ const a = String(r.anio).trim(); if(a) anioCounts[a] = (anioCounts[a]||0)+1; });
+    this.currentYear = Object.keys(anioCounts).sort((a,b)=>anioCounts[b]-anioCounts[a])[0] || '';
+    this.buildFilterOptions();
+    // La tabla solo se preselecciona al año vigente cuando el PM realmente lo necesita
+    // (scopeKpisToYear): si no, un portafolio chico como el de Cynthia se vería con menos
+    // solicitudes de las que en realidad tiene solo porque una trae un año distinto.
+    const fAnio = document.getElementById('f-anio');
+    if(fAnio) fAnio.value = (this.pm && this.pm.scopeKpisToYear) ? this.currentYear : '';
+    // La vista General no tiene un archivo propio que resubir (junta lo ya guardado de
+    // cada PM), así que ese botón no aplica ahí. La clase "is-general" muestra la columna
+    // "PM" en las tablas (ver .pm-col), que en el resto de los dashboards no aporta nada
+    // porque siempre sería el mismo PM.
+    const isGeneral = !!(this.pm && this.pm.id === 'general');
+    document.body.classList.toggle('is-general', isGeneral);
+    const btnChangeFile = document.getElementById('btn-change-file');
+    if(btnChangeFile) btnChangeFile.style.display = isGeneral ? 'none' : '';
+    this.applyFilters();
+    this.renderInsight();
+    this.renderAreaCounts();
+    this.renderKpis();
+    this.renderCharts();
+    this.renderSummaryButton();
+    this.showScreen('screen-dashboard');
+    history.pushState({screen:'screen-dashboard'}, '', '#dashboard');
+    // La tabla estaba oculta (display:none) cuando applyFilters la renderizó, así que el
+    // ancho para la barra de scroll duplicada salía en 0; se recalcula ya visible.
+    this.syncTableScrollWidth();
+    if(!opts || !opts.skipSave) this.saveToStorage();
+  },
+
+  // Subconjunto de this.rows que alimenta KPIs y gráficas: solo el año de presupuesto más
+  // frecuente (this.currentYear), para que años viejos/de prueba mezclados en el archivo no
+  // distorsionen los totales. La tabla de detalle sí sigue mostrando todos los años (con el
+  // filtro de año disponible para cambiarlo).
+  // Esto SOLO aplica si el PM lo pide explícitamente (PM_LIST.scopeKpisToYear): a un
+  // portafolio chico como el de Cynthia (3 solicitudes), que una sola traiga un año
+  // distinto (p.ej. 2028 en vez de 2027) no debe hacer que las gráficas la ignoren — el
+  // total siempre debe cuadrar con "Solicitudes totales".
+  yearRows(){
+    if(!this.currentYear || !this.pm || !this.pm.scopeKpisToYear) return this.rows;
+    return this.rows.filter(r=>String(r.anio).trim() === this.currentYear);
+  },
+
+  /* ---------- resumen consolidado (hoja "Concentrado" de Alexis) ---------- */
+  renderSummaryButton(){
+    const btn = document.getElementById('btn-summary');
+    if(!btn) return;
+    if(this.summaryRows && this.summaryRows.length){
+      btn.style.display = 'flex';
+      btn.querySelector('.summary-count').textContent = this.summaryRows.length;
+    } else {
+      btn.style.display = 'none';
+    }
+  },
+  openSummary(){
+    document.getElementById('summary-search').value = '';
+    this.renderSummaryTable();
+    document.getElementById('modal-summary-bg').classList.add('active');
+  },
+  renderSummaryTable(){
+    const search = document.getElementById('summary-search').value.trim().toLowerCase();
+    const rows = search ? this.summaryRows.filter(r=>{
+      const hay = (r.proyecto+' '+r.rpp+' '+r.unidad+' '+r.solicitante).toLowerCase();
+      return hay.indexOf(search) !== -1;
+    }) : this.summaryRows;
+    const tbody = document.getElementById('summary-table-body');
+    tbody.innerHTML = rows.length ? rows.map(r=>{
+      const statusCls = estatusPillClass(r.estatus);
+      return `<tr>
+        <td><span class="unidad-tag">${escapeHtml(r.unidad)}</span></td>
+        <td>${escapeHtml(r.rpp)}</td>
+        <td class="proj-name">${escapeHtml(r.proyecto)}</td>
+        <td>${escapeHtml(r.tipoTarea)}</td>
+        <td>${escapeHtml(r.prioridad)}</td>
+        <td><span class="status-pill ${statusCls}">${escapeHtml(r.estatus)}</span></td>
+        <td><span class="row-link" data-rpp="${escapeAttr(r.rpp)}">Ver detalle →</span></td>
+      </tr>`;
+    }).join('') : `<tr class="empty-row"><td colspan="7">No encontramos solicitudes con esa búsqueda.</td></tr>`;
+    tbody.querySelectorAll('.row-link').forEach(el=>{
+      el.onclick = ()=>{
+        const row = this.summaryRows.find(r=>r.rpp === el.dataset.rpp);
+        this.closeSummary();
+        if(row) this.openModal(row);
+      };
+    });
+    document.getElementById('summary-count-label').textContent =
+      rows.length === this.summaryRows.length ? this.summaryRows.length : `${rows.length} de ${this.summaryRows.length}`;
+  },
+  closeSummary(){ document.getElementById('modal-summary-bg').classList.remove('active'); },
+
+  buildFilterOptions(){
+    const anios = uniqueSorted(this.rows.map(r=>r.anio).filter(Boolean));
+    const tareas = uniqueSorted(this.rows.map(r=>r.tipoTarea));
+    const tipoproys = uniqueSorted(this.rows.map(r=>r.tipoProyecto));
+    const estatuses = uniqueSorted(this.rows.map(r=>r.estatus));
+    const gseeCats = uniqueSorted(this.rows.map(r=>r.gseeCategory).filter(Boolean));
+
+    fillSelect('f-anio', anios);
+    fillSelect('f-tarea', tareas);
+    fillSelect('f-tipoproy', tipoproys);
+    fillSelect('f-estatus', estatuses);
+    fillSelect('f-gseecat', gseeCats);
+  },
+
+  applyFilters(){
+    const search = document.getElementById('f-search').value.trim().toLowerCase();
+    const unidad = this.currentUnit || '';
+    const anio = document.getElementById('f-anio').value;
+    const tarea = document.getElementById('f-tarea').value;
+    const tipoproy = document.getElementById('f-tipoproy').value;
+    const estatus = document.getElementById('f-estatus').value;
+    const gseeCat = document.getElementById('f-gseecat').value;
+    const area = document.getElementById('f-area').value;
+
+    this.filtered = this.rows.filter(r=>{
+      if(unidad && r.unidad!==unidad) return false;
+      if(anio && String(r.anio)!==anio) return false;
+      if(tarea && r.tipoTarea!==tarea) return false;
+      if(tipoproy && r.tipoProyecto!==tipoproy) return false;
+      if(estatus && r.estatus!==estatus) return false;
+      if(gseeCat && r.gseeCategory!==gseeCat) return false;
+      if(area && !rowHasArea(r, area)) return false;
+      if(search){
+        const hay = (r.proyecto+' '+r.rpp+' '+r.solicitante+' '+r.descripcion).toLowerCase();
+        if(hay.indexOf(search)===-1) return false;
+      }
+      return true;
+    });
+
+    this.sortRows();
+    this.page = 1;
+    this.renderTable();
+    this.updateFilterBadge();
+    this.renderActiveChips();
+    this.renderUnitTabs();
+  },
+
+  /* ---------- tabs por unidad (como las pestañas del Excel original) ---------- */
+  renderUnitTabs(){
+    const wrap = document.getElementById('unit-tabs');
+    let units = uniqueSorted(this.rows.map(r=>r.unidad));
+    if(this.pm.unitOrder){
+      units = this.pm.unitOrder.filter(u=>units.includes(u)).concat(units.filter(u=>!this.pm.unitOrder.includes(u)));
+    }
+    if(units.length <= 1){ wrap.classList.remove('show'); wrap.innerHTML = ''; return; }
+    wrap.classList.add('show');
+    const current = this.currentUnit || '';
+    const tabs = [''].concat(units);
+    // Mismos pares de color pastel que ya usan los badges de la tabla (TI/Biomédica/
+    // Construcción/Mantenimiento/GSEE), para que las pestañas se sientan parte del mismo
+    // sistema visual en vez de un color inventado.
+    const UNIT_TAB_COLORS = [
+      ['#DBEAFE','#1D4ED8'], ['#D1FAE5','#065F46'], ['#FEF3C7','#92400E'],
+      ['#E0E7FF','#3730A3'], ['#FEE2E2','#991B1B'], ['#CFFAFE','#155E75'],
+    ];
+    wrap.innerHTML = tabs.map((u,i)=>{
+      const label = u || 'Todas';
+      const count = u ? this.rows.filter(r=>r.unidad===u).length : this.rows.length;
+      const active = u === current ? ' active' : '';
+      const [bg,fg] = u ? UNIT_TAB_COLORS[(i-1) % UNIT_TAB_COLORS.length] : ['#EDE9EE', 'var(--p-dark)'];
+      return `<button type="button" class="unit-tab${active}" style="--tab-bg:${bg};--tab-fg:${fg}" data-unit="${escapeAttr(u)}">${escapeHtml(label)} <span class="unit-tab-count">(${count})</span></button>`;
+    }).join('');
+    wrap.querySelectorAll('.unit-tab').forEach(btn=>{
+      btn.onclick = ()=>{
+        this.currentUnit = btn.dataset.unit;
+        this.applyFilters();
+      };
+    });
+  },
+
+  updateFilterBadge(){
+    const selIds = ['f-anio','f-tarea','f-tipoproy','f-estatus','f-gseecat','f-area'];
+    const count = selIds.filter(id=>document.getElementById(id).value).length;
+    const badge = document.getElementById('filter-badge');
+    const btn = document.getElementById('btn-toggle-filters');
+    if(count > 0){ badge.textContent = count; badge.style.display = 'inline-flex'; btn.classList.add('active'); }
+    else { badge.style.display = 'none'; btn.classList.remove('active'); }
+  },
+
+  renderActiveChips(){
+    const wrap = document.getElementById('active-chips');
+    const search = document.getElementById('f-search').value.trim();
+    const selDefs = [
+      ['f-estatus','Estatus'], ['f-anio','Año'], ['f-tarea','Tarea'],
+      ['f-tipoproy','Tipo proy.'], ['f-gseecat','GSEE/INFRA'], ['f-area','Área'],
+    ];
+    const chips = [];
+    if(search) chips.push({key:'search', label:`Buscar: "${search}"`});
+    selDefs.forEach(([id,label])=>{
+      const v = document.getElementById(id).value;
+      if(v) chips.push({key:id, label:`${label}: ${v}`});
+    });
+
+    if(!chips.length){ wrap.style.display = 'none'; wrap.innerHTML = ''; return; }
+    wrap.style.display = 'flex';
+    wrap.innerHTML = chips.map(c=>
+      `<span class="active-chip" data-key="${escapeAttr(c.key)}">${escapeHtml(c.label)} <i class="ti ti-x" aria-hidden="true"></i></span>`
+    ).join('') + `<span class="active-chip active-chip-clear" id="chip-clear-all"><i class="ti ti-trash" aria-hidden="true"></i> Limpiar todo</span>`;
+
+    wrap.querySelectorAll('.active-chip[data-key]').forEach(el=>{
+      el.onclick = ()=>{
+        const key = el.dataset.key;
+        if(key === 'search'){ document.getElementById('f-search').value = ''; }
+        else { document.getElementById(key).value = ''; }
+        this.applyFilters();
+      };
+    });
+    const clearAll = document.getElementById('chip-clear-all');
+    if(clearAll) clearAll.onclick = ()=>document.getElementById('btn-clear').click();
+  },
+
+  sortRows(){
+    const key = this.sortKey, dir = this.sortDir;
+    this.filtered.sort((a,b)=>{
+      let va = a[key], vb = b[key];
+      const na = parseFloat(va), nb = parseFloat(vb);
+      if(!isNaN(na) && !isNaN(nb) && va!=='' && vb!==''){ va=na; vb=nb; }
+      else { va = String(va||'').toLowerCase(); vb = String(vb||'').toLowerCase(); }
+      if(va<vb) return -1*dir;
+      if(va>vb) return 1*dir;
+      return 0;
+    });
+  },
+
+  renderTable(){
+    const tbody = document.getElementById('table-body');
+    const total = this.filtered.length;
+    const start = (this.page-1)*PAGE_SIZE;
+    const pageRows = this.filtered.slice(start, start+PAGE_SIZE);
+
+    document.getElementById('table-count').textContent =
+      total ? `Mostrando ${start+1}–${Math.min(start+PAGE_SIZE,total)} de ${total} solicitudes` : 'Sin resultados — prueba quitando algún filtro';
+
+    if(!pageRows.length){
+      tbody.innerHTML = `<tr class="empty-row"><td colspan="13">No encontramos solicitudes con esos filtros. Intenta quitar alguno.</td></tr>`;
+    } else {
+      tbody.innerHTML = pageRows.map((r,i)=>{
+        const badges = [
+          r.ti?'<span class="badge badge-ti">TI</span>':'',
+          r.biomedica?'<span class="badge badge-bio">Biomédica</span>':'',
+          r.construccion?'<span class="badge badge-con">Construcción</span>':'',
+          r.mantenimiento?'<span class="badge badge-mtt">Mantenimiento</span>':'',
+          r.descartado?'<span class="badge badge-descartado" title="Descartado de este ciclo de parametrización, pero sigue en radar si aplica TI">Descartado</span>':'',
+          r.enValidacion?'<span class="badge badge-validando" title="En validación con la unidad">Validando</span>':'',
+        ].join('');
+        const statusCls = estatusPillClass(r.estatus);
+        const rowCls = r.descartado ? 'row-descartado' : r.enValidacion ? 'row-validando' : '';
+        return `<tr class="${rowCls}">
+          <td class="td-num">${start+i+1}</td>
+          <td class="pm-col">${escapeHtml(r.pmOrigen||'—')}</td>
+          <td><span class="unidad-tag">${escapeHtml(r.unidad)}</span></td>
+          <td>${escapeHtml(r.rpp)}</td>
+          <td>${escapeHtml(r.anio)}</td>
+          <td class="proj-name">${escapeHtml(r.proyecto)}</td>
+          <td>${escapeHtml(r.tipoTarea)}</td>
+          <td>${escapeHtml(r.tipoProyecto)}</td>
+          <td>${escapeHtml(r.prioridad)}</td>
+          <td><div class="badges">${badges||'—'}</div></td>
+          <td>${r.gseeCategory ? `<span class="badge badge-gsee">${escapeHtml(r.gseeCategory)}</span>` : '—'}</td>
+          <td><span class="status-pill ${statusCls}">${escapeHtml(r.estatus)}</span></td>
+          <td><span class="row-link" data-idx="${start+i}">Ver detalle →</span></td>
+        </tr>`;
+      }).join('');
+      tbody.querySelectorAll('.row-link').forEach(el=>{
+        el.onclick = ()=>App.openModal(App.filtered[parseInt(el.dataset.idx)]);
+      });
+    }
+    this.renderPager(total);
+    this.syncTableScrollWidth();
+  },
+
+  syncTableScrollWidth(){
+    const scroll = document.getElementById('table-scroll');
+    const spacer = document.getElementById('table-scroll-top-spacer');
+    if(scroll && spacer) spacer.style.width = scroll.querySelector('table').scrollWidth + 'px';
+  },
+
+  renderPager(total){
+    const pages = Math.max(1, Math.ceil(total/PAGE_SIZE));
+    const pager = document.getElementById('pager');
+    if(pages<=1){ pager.innerHTML=''; return; }
+    pager.innerHTML = `
+      <button ${this.page===1?'disabled':''} id="pg-prev"><i class="ti ti-chevron-left" aria-hidden="true"></i> Anterior</button>
+      <span>Página ${this.page} de ${pages}</span>
+      <button ${this.page===pages?'disabled':''} id="pg-next">Siguiente <i class="ti ti-chevron-right" aria-hidden="true"></i></button>`;
+    document.getElementById('pg-prev').onclick = ()=>{ this.page--; this.renderTable(); };
+    document.getElementById('pg-next').onclick = ()=>{ this.page++; this.renderTable(); };
+  },
+
+  renderAreaCounts(){
+    const labels = {construccion:'Construcción', mantenimiento:'Mantenimiento', biomedica:'Biomédica', ti:'TI'};
+    const sel = document.getElementById('f-area');
+    Object.keys(labels).forEach(a=>{
+      const count = this.rows.filter(r=>rowHasArea(r,a)).length;
+      const opt = sel.querySelector(`option[value="${a}"]`);
+      if(opt) opt.textContent = `${labels[a]} (${count})`;
+    });
+  },
+
+  renderInsight(){
+    const wrap = document.getElementById('insight-banner');
+    const yr = this.yearRows();
+    if(!yr.length){ wrap.style.display = 'none'; return; }
+
+    const byTarea = {};
+    yr.forEach(r=>{ byTarea[r.tipoTarea] = (byTarea[r.tipoTarea]||0)+1; });
+    const [topTarea, topTareaCount] = Object.entries(byTarea).sort((a,b)=>b[1]-a[1])[0];
+
+    const byUnidad = {};
+    yr.forEach(r=>{ byUnidad[r.unidad] = (byUnidad[r.unidad]||0)+1; });
+    const [topUnidad, topUnidadCount] = Object.entries(byUnidad).sort((a,b)=>b[1]-a[1])[0];
+
+    const pct = Math.round((topTareaCount / yr.length) * 100);
+    const altaPrioridad = yr.filter(r=>{
+      const p = parseFloat(r.prioridad);
+      return !isNaN(p) && p <= 5;
+    }).length;
+    const totalTI = yr.filter(r=>r.ti).length;
+    const pctTI = Math.round((totalTI / yr.length) * 100);
+    // Desglose de las TI que además caen en GSEE o en INFRA (son categorías distintas de la
+    // columna "GSEE/INFRAESTRUCTURA", no se suman entre sí). Se muestra "X de Y" para dejar
+    // claro que es una parte del total de GSEE/INFRA, no un total aparte que deba cuadrar.
+    const totalGsee = yr.filter(r=>r.gseeCategory==='GSEE').length;
+    const totalInfra = yr.filter(r=>r.gseeCategory==='INFRA').length;
+    const totalTIGsee = yr.filter(r=>r.ti && r.gseeCategory==='GSEE').length;
+    const totalTIInfra = yr.filter(r=>r.ti && r.gseeCategory==='INFRA').length;
+    const totalTIAmbos = yr.filter(r=>r.ti && r.gseeCategory==='Ambos (GSEE + INFRA)').length;
+
+    let msg = `De tus ${yr.length} solicitudes, ${pct}% (${topTareaCount}) son de <strong>${escapeHtml(topTarea)}</strong>, y <strong>${escapeHtml(topUnidad)}</strong> es la unidad con más actividad (${topUnidadCount} solicitudes). <strong>${totalTI} (${pctTI}%)</strong> están marcadas como que requieren participación de TI: de tus <strong>${totalGsee}</strong> GSEE, <strong>${totalTIGsee}</strong> también son TI; de tus <strong>${totalInfra}</strong> INFRA, <strong>${totalTIInfra}</strong> también son TI${totalTIAmbos ? `, y <strong>${totalTIAmbos}</strong> son ambos` : ''}.`;
+    if(altaPrioridad > 0){
+      msg += ` Tienes ${altaPrioridad} con prioridad alta (1–5) que conviene revisar primero.`;
+    }
+
+    wrap.style.display = 'flex';
+    wrap.innerHTML = `<i class="ti ti-bulb" aria-hidden="true"></i><span>${msg}</span>`;
+  },
+
+  renderKpis(){
+    // KPIs sobre el año de presupuesto más frecuente (this.currentYear, calculado en
+    // loadData); años viejos/mezclados no distorsionan estos totales pero siguen
+    // disponibles en la tabla de detalle vía el filtro de año.
+    const yr = this.yearRows();
+    const anioActual = this.currentYear;
+    // "Solicitudes totales" es el total real del archivo completo (todos los años, si el
+    // PM trae varios mezclados); el resto de los KPIs se calculan solo sobre el año más
+    // frecuente (yr / totalAnioActual), igual que las gráficas.
+    const totalSolTodo = this.rows.length;
+    const unidades = uniqueSorted(yr.map(r=>r.unidad)).length;
+    // "RPP totales <año>" siempre cuenta solo las filas de ESE año específico, sin importar
+    // si el PM está en modo "sin filtrar por año" (scopeKpisToYear apagado) — si no, en un
+    // portafolio como el de Cynthia diría "RPP totales 2027: 3" aunque una de esas 3 fuera
+    // en realidad de 2028.
+    const totalAnioActual = this.rows.filter(r=>String(r.anio).trim() === anioActual).length;
+    const totalTI = yr.filter(r=>r.ti).length;
+    const totalAmbos = yr.filter(r=>r.gseeCategory==='Ambos (GSEE + INFRA)').length;
+    // Desglose de las TI que además caen en GSEE o en INFRA (categorías separadas de la
+    // columna "GSEE/INFRAESTRUCTURA"; no se suman entre sí).
+    const totalTIGsee = yr.filter(r=>r.ti && r.gseeCategory==='GSEE').length;
+    const totalTIInfra = yr.filter(r=>r.ti && r.gseeCategory==='INFRA').length;
+    // TI que no cae en ninguna categoría de GSEE/INFRAESTRUCTURA (columna vacía o con un
+    // valor que no es ni GSEE ni Infra) — para que 25 + 34 + esto sí sume el total de TI.
+    const totalTISinCategoria = totalTI - totalTIGsee - totalTIInfra - yr.filter(r=>r.ti && r.gseeCategory==='Ambos (GSEE + INFRA)').length;
+    // Los porcentajes usan yr.length (la misma población de donde salen los numeradores),
+    // no totalAnioActual — si no, en un PM sin scopeKpisToYear (Cynthia, Staff GSEE) con
+    // años mezclados, totalTI podía venir de más filas que el denominador y dar >100%.
+    const pctTI = yr.length ? Math.round((totalTI/yr.length)*100) : 0;
+    const pctAmbos = yr.length ? Math.round((totalAmbos/yr.length)*100) : 0;
+    // Filas tipo "lista" (etiqueta a la izquierda, valor a la derecha) reutilizadas por
+    // varias tarjetas — así el desglose de cada una se lee de un vistazo en vez de tener
+    // que descifrar un párrafo con puntos separadores.
+    const kpiRow = (label, valueHtml)=> `<div class="kpi-list-row"><span>${label}</span><b>${valueHtml}</b></div>`;
+    const kpiList = (rows)=> `<div class="kpi-list">${rows.filter(Boolean).join('')}</div>`;
+    const kpiLinkVal = (id, count, label)=> count>0 ? kpiRow(label, `<span class="kpi-link" id="${id}">${count}</span>`) : '';
+    // Presupuesto estimado: suma de los 4 montos por área (Construcción/Mantenimiento/
+    // Biomédica/TI) de cada solicitud — son montos por RPP, a diferencia de "Presupuesto
+    // Sugerido CAPEX" que viene repetido igual en todas las filas de una misma unidad (ese
+    // si se sumara, contaría el mismo total de la unidad una vez por cada RPP). Se suma solo
+    // Presupuesto: SOLO lo real, sacado de las plantillas A/B cargadas (ver budgetTemplates,
+    // suma de "Inversión Año 1"). Ya no se rellena con el estimado por montos de área — ese
+    // número no es un presupuesto real, así que la tarjeta directamente no existe para un RPP
+    // hasta que se le cargue su plantilla, en vez de disfrazar $0 real como si fuera plata.
+    // A propósito NO se limita al año vigente aquí (a diferencia de otras tarjetas): una
+    // plantilla cargada es un compromiso real independientemente de en qué año caiga su RPP,
+    // así que el total suma TODAS las plantillas cargadas de este PM — el año de cada una se
+    // puede ver en el desglose ("Ver →").
+    const rppsConPlantilla = new Set();
+    let montoRealTotal = 0;
+    const seenRppPresupuesto = new Set();
+    this.rows.forEach(r=>{
+      if(!r.rpp || seenRppPresupuesto.has(r.rpp)) return;
+      seenRppPresupuesto.add(r.rpp);
+      const tpl = this.resolveBudgetTemplate(r);
+      if(tpl){
+        montoRealTotal += tpl.total;
+        rppsConPlantilla.add(r.rpp);
+      }
+    });
+    const montoTotal = montoRealTotal;
+    // En General no hay un PM "dueño" al que subirle plantillas — se puede VER el
+    // concentrado de lo que cada PM ya cargó (rppsConPlantilla arriba ya lo junta bien),
+    // pero para subir hay que entrar al dashboard de ese PM específico.
+    const isGeneral = this.pm.id === 'general';
+    const totalPlantillasCargadas = isGeneral
+      ? PM_LIST.reduce((s,pm)=>s+Object.keys(this.getBudgetTemplatesForPm(pm.id)).length, 0)
+      : Object.keys(this.getBudgetTemplatesForPm(this.pm.id)).length;
+    const montoDesgloseHtml = kpiList([
+      rppsConPlantilla.size>0 ? kpiRow('RPP con plantilla', rppsConPlantilla.size+' de '+seenRppPresupuesto.size) : '',
+      rppsConPlantilla.size>0 ? kpiRow('Ver desglose por RPP', `<span class="kpi-link" id="kpi-link-budget-detail">Ver →</span>`) : '',
+      isGeneral
+        ? kpiRow('Plantillas cargadas', totalPlantillasCargadas+' (entre los ' + PM_LIST.length + ' PM)')
+        : kpiRow('Plantillas cargadas', `<span class="kpi-link" id="kpi-link-budget-upload">${totalPlantillasCargadas} · Cargar${totalPlantillasCargadas>0?' más':''}</span>`),
+      (!isGeneral && totalPlantillasCargadas>0) ? kpiRow('', `<span class="kpi-link" id="kpi-link-budget-clear" style="color:#991B1B">Borrar todas</span>`) : '',
+    ]);
+
+    // Listas exactas detrás de los números "sin categoría" / "sin TI" de los desgloses de
+    // abajo, para que se pueda ver cuáles RPPs son en vez de quedarse solo con el conteo.
+    const sinCategoriaTIRows = yr.filter(r=>r.ti && r.gseeCategory!=='GSEE' && r.gseeCategory!=='INFRA' && r.gseeCategory!=='Ambos (GSEE + INFRA)');
+    // "GSEE/Infraestructura con TI": la tarjeta muestra como número principal el año
+    // vigente (2027), pero el desglose de abajo aclara cuántos hay en otros años y el total
+    // real sumando todo — así un portafolio con varios años mezclados (Cynthia, Staff GSEE)
+    // no esconde que hay más solicitudes fuera del año actual.
+    const gseeTIRows = this.rows.filter(r=>r.ti && r.gseeCategory==='GSEE');
+    const gseeTIRows2027 = gseeTIRows.filter(r=>String(r.anio).trim()===anioActual);
+    const infraTIRows = this.rows.filter(r=>r.ti && r.gseeCategory==='INFRA');
+    const infraTIRows2027 = infraTIRows.filter(r=>String(r.anio).trim()===anioActual);
+    const totalGseeAllYears = this.rows.filter(r=>r.gseeCategory==='GSEE').length;
+    const totalInfraAllYears = this.rows.filter(r=>r.gseeCategory==='INFRA').length;
+    const totalGsee2027 = this.rows.filter(r=>r.gseeCategory==='GSEE' && String(r.anio).trim()===anioActual).length;
+    const totalInfra2027 = this.rows.filter(r=>r.gseeCategory==='INFRA' && String(r.anio).trim()===anioActual).length;
+    const gseeSinTIRows = this.rows.filter(r=>r.gseeCategory==='GSEE' && !r.ti);
+    const infraSinTIRows = this.rows.filter(r=>r.gseeCategory==='INFRA' && !r.ti);
+
+    const kpis = [
+      {icon:'ti-clipboard-list', label:'Solicitudes totales', value: totalSolTodo.toLocaleString('es-MX'), sub: 'calculado del detalle por unidad', accent:true},
+      {icon:'ti-calendar-event', label:'RPP totales '+(anioActual||'—'), value: totalAnioActual.toLocaleString('es-MX'), sub: 'Año de Presupuesto '+(anioActual||'—')},
+      {icon:'ti-device-desktop', label:'RPPs TI', value: totalTI.toLocaleString('es-MX'), sub: kpiList([
+        kpiRow('Del total', pctTI+'%'),
+        kpiRow('GSEE', totalTIGsee),
+        kpiRow('INFRA', totalTIInfra),
+        kpiLinkVal('kpi-link-sincat', totalTISinCategoria, 'Sin categoría'),
+      ])},
+      {icon:'ti-building-hospital', label:'Unidades', value: unidades, sub: (this.pm && this.pm.scopeKpisToYear && anioActual) ? `con solicitudes en ${anioActual}` : 'con detalle cargado'},
+    ];
+    // Siempre aparece (si ya hay al menos un RPP cargado) para que "Cargar plantillas" sea
+    // visible incluso antes de subir la primera — pero el número grande solo cuenta lo real:
+    // si no hay ninguna plantilla, dice "—", no un estimado disfrazado. No dice un año en el
+    // título a propósito: suma TODAS las plantillas cargadas sin importar el año de su RPP.
+    if(seenRppPresupuesto.size > 0){
+      kpis.splice(2, 0, {icon:'ti-currency-dollar', label:'Presupuesto real',
+        value: rppsConPlantilla.size>0 ? formatMoney(montoTotal) : '—', sub: montoDesgloseHtml});
+    }
+    // Tarjetas de GSEE/INFRA/Ambos: si un PM no tiene nada de alguna categoría (p.ej. Cynthia
+    // no tiene INFRA, o un PM sin GSEE/INFRA cargado), no vale la pena mostrar una tarjeta en 0.
+    // Se insertan justo después de "RPPs TI" (índice dinámico: la tarjeta de Presupuesto de
+    // arriba puede o no estar presente, así que no se puede asumir una posición fija).
+    const afterRppsTI = kpis.findIndex(k=>k.label==='RPPs TI') + 1;
+    if(totalInfraAllYears > 0){
+      const infraOtrosAnios = infraTIRows.length - infraTIRows2027.length;
+      kpis.splice(afterRppsTI, 0, {icon:'ti-building-fortress', label:'RPPs Infraestructura con TI', value: infraTIRows2027.length.toLocaleString('es-MX'), sub: kpiList([
+        kpiRow('Con TI en '+(anioActual||'—'), infraTIRows2027.length),
+        kpiRow('Total INFRA en '+(anioActual||'—'), totalInfra2027),
+        infraOtrosAnios ? kpiRow('Con TI otros años', `+${infraOtrosAnios} (${infraTIRows.length} total)`) : '',
+        kpiLinkVal('kpi-link-infrasinti', infraSinTIRows.length, 'Sin TI'),
+      ])});
+    }
+    if(totalGseeAllYears > 0){
+      const gseeOtrosAnios = gseeTIRows.length - gseeTIRows2027.length;
+      kpis.splice(afterRppsTI, 0, {icon:'ti-server-2', label:'RPPs GSEE con TI', value: gseeTIRows2027.length.toLocaleString('es-MX'), sub: kpiList([
+        kpiRow('Con TI en '+(anioActual||'—'), gseeTIRows2027.length),
+        kpiRow('Total GSEE en '+(anioActual||'—'), totalGsee2027),
+        gseeOtrosAnios ? kpiRow('Con TI otros años', `+${gseeOtrosAnios} (${gseeTIRows.length} total)`) : '',
+        kpiLinkVal('kpi-link-gseesinti', gseeSinTIRows.length, 'Sin TI'),
+      ])});
+    }
+    if(totalAmbos > 0){
+      const beforeUnidades = kpis.findIndex(k=>k.label==='Unidades');
+      kpis.splice(beforeUnidades, 0, {icon:'ti-stack-2', label:'RPPs GSEE/INFRA', value: totalAmbos.toLocaleString('es-MX'), sub: kpiList([kpiRow('Del total', pctAmbos+'%')])});
+    }
+    document.getElementById('kpi-row').innerHTML = kpis.map(k=>
+      `<div class="kpi ${k.accent?'accent':''}">
+        <div class="kpi-icon-wrap"><i class="ti ${k.icon}" aria-hidden="true"></i></div>
+        <div class="kpi-label">${k.label}</div>
+        <div class="kpi-val">${k.value}</div>
+        <div class="kpi-sub">${k.sub}</div>
+      </div>`).join('');
+
+    const linkSinCat = document.getElementById('kpi-link-sincat');
+    if(linkSinCat) linkSinCat.onclick = ()=>this.openQuickList('TI sin categoría GSEE/INFRA', 'Solicitudes marcadas como que requieren TI, pero que no están clasificadas ni como GSEE ni como INFRA.', sinCategoriaTIRows);
+    const linkGseeSinTI = document.getElementById('kpi-link-gseesinti');
+    if(linkGseeSinTI) linkGseeSinTI.onclick = ()=>this.openQuickList('GSEE sin TI', 'Solicitudes GSEE que no están marcadas como que requieren participación de TI.', gseeSinTIRows);
+    const linkInfraSinTI = document.getElementById('kpi-link-infrasinti');
+    if(linkInfraSinTI) linkInfraSinTI.onclick = ()=>this.openQuickList('INFRA sin TI', 'Solicitudes de Infraestructura que no están marcadas como que requieren participación de TI.', infraSinTIRows);
+    const linkBudgetDetail = document.getElementById('kpi-link-budget-detail');
+    if(linkBudgetDetail) linkBudgetDetail.onclick = ()=>this.openBudgetList();
+    const linkBudgetUpload = document.getElementById('kpi-link-budget-upload');
+    if(linkBudgetUpload) linkBudgetUpload.onclick = ()=>document.getElementById('budget-template-input').click();
+    const linkBudgetClear = document.getElementById('kpi-link-budget-clear');
+    if(linkBudgetClear) linkBudgetClear.onclick = ()=>this.clearBudgetTemplates();
+
+    this.renderEstatusBreakdown();
+  },
+
+  renderEstatusBreakdown(){
+    const wrap = document.getElementById('estatus-breakdown');
+    if(!wrap) return;
+    const counts = {};
+    this.yearRows().forEach(r=>{ counts[r.estatus] = (counts[r.estatus]||0)+1; });
+    const entries = Object.entries(counts).sort((a,b)=>b[1]-a[1]);
+    if(!entries.length){ wrap.style.display = 'none'; return; }
+    wrap.style.display = 'flex';
+    wrap.innerHTML = entries.map(([estatus,count])=>{
+      const cls = estatusPillClass(estatus);
+      return `<span class="status-pill estatus-chip ${cls}">${escapeHtml(estatus)} <strong>${count}</strong></span>`;
+    }).join('');
+  },
+
+  renderCharts(){
+    this.renderChartUnidad();
+    this.renderHorizontalBar('chart-tarea', 'tipoTarea', 'chartTarea');
+    this.renderDonut('chart-tipoproy', 'tipoProyecto', 'chartTipoProy');
+    this.renderGseeChart();
+    this.renderGseeEstatusChart();
+  },
+
+  // Las 6 columnas de flujo que agregó Alexis son etapas de un mismo trámite, en este
+  // orden: alcance -> parametrico -> validación TI -> validación GSEE -> notificación ->
+  // carga en PowerApps. Por PM que no las tenga, la etapa sale en 0/0 y no rompe nada.
+  FLUJO_ETAPAS: [
+    ['Definición de alcance', 'definicionAlcance'],
+    ['Elaboración de Parametrico', 'elaboracionParametrico'],
+    ['Validación TI', 'validacionTI'],
+    ['Validación GSEE', 'validacionGsee'],
+    ['Notificación a Admin. TI', 'notificacionAdminTI'],
+    ['Carga en PowerApps', 'cargaParametrico'],
+  ],
+
+  renderGseeEstatusChart(){
+    const card = document.getElementById('flujo-card');
+    const canvas = document.getElementById('chart-gsee-estatus');
+    if(!canvas) return;
+    const ctx = canvas.getContext('2d');
+    // Este flujo (Definición de alcance -> ... -> Carga en PowerApps) es específico de las
+    // solicitudes GSEE, no de INFRA (incluye también las que se detectaron como GSEE por
+    // tener datos de flujo aunque el PM no tenga columna de GSEE/INFRA — ver parseWorkbook).
+    // También se exige TI (r.ti) para que el total coincida con el mismo grupo de la tarjeta
+    // "RPPs GSEE con TI": las etapas de este flujo (Notificación a Admin. TI, Carga en
+    // PowerApps) son justo el trámite de TI, no aplican a un GSEE que no lo requiere.
+    // El filtro de año ("Año vigente" vs "Todos los años") lo elige quien lo esté viendo con
+    // el selector de la tarjeta (this.flujoAnioFilter) — antes estaba fijo y algunos PM
+    // veían RPP de otros años mezclados sin poder quitarlos.
+    const sel = document.getElementById('flujo-anio-filter');
+    if(sel) sel.value = this.flujoAnioFilter;
+    const flujoRows = this.rows.filter(r=>
+      r.gseeCategory === 'GSEE' && r.ti &&
+      (this.flujoAnioFilter === 'todos' || String(r.anio).trim() === this.currentYear)
+    );
+    this.flujoRows = flujoRows;
+    const countBadge = document.getElementById('flujo-list-count');
+    if(countBadge) countBadge.textContent = flujoRows.length;
+
+    if(this.chartGseeEstatus) this.chartGseeEstatus.destroy();
+    // Si el archivo del PM no trae ninguna de las 6 columnas de flujo (p.ej. Staff GSEE,
+    // que viene del export ancho "query (N)" sin esas columnas), todas las filas salen
+    // "Pendiente" en las 6 etapas — pero eso no es 0% de avance real, es que no hay dato
+    // capturado. Mostrar la gráfica ahí sería engañoso, así que se oculta la tarjeta.
+    const hayDatoFlujo = flujoRows.length && this.FLUJO_ETAPAS.some(([,field])=>flujoRows.some(r=>r[field]));
+    if(!hayDatoFlujo){
+      this.chartGseeEstatus = null;
+      if(card) card.style.display = 'none';
+      return;
+    }
+    if(card) card.style.display = '';
+
+    const labels = this.FLUJO_ETAPAS.map(([label])=>label);
+    // Cada etapa trae texto libre ("Terminado", "En Proceso") en vez de solo lleno/vacío,
+    // así que se separan en 3 estados en vez de solo Completado/Pendiente: si no, "En
+    // Proceso" se contaba como completado por venir con algo escrito. Cynthia usa "OK" como
+    // su propio check de "terminado" en estas columnas, así que cuenta igual. Se acepta
+    // también "trminado" (Alexis tiene ese typo exacto en "Carga de parametrico en
+    // PowerApps" — le falta la "e" — y sin esto esa columna nunca contaba como terminada).
+    const isTerminado = v => v==='terminado' || v==='trminado' || v==='ok';
+    // Los RPP marcados como "Descartado" (rojo, ver rppColorMap) se cuentan aparte en vez de
+    // caer en "Pendiente": ya no van a avanzar en este ciclo porque Alexia decidió no
+    // trabajarlos, así que verlos como "pendiente" (como si solo faltara tiempo) sería
+    // engañoso. Siguen visibles en la gráfica y en la tabla, solo con su propio color/franja.
+    const activas = flujoRows.filter(r=>!r.descartado);
+    const descartadosCount = flujoRows.length - activas.length;
+    const terminado = this.FLUJO_ETAPAS.map(([,field])=>activas.filter(r=>isTerminado(normalize(r[field]))).length);
+    const enProceso = this.FLUJO_ETAPAS.map(([,field])=>activas.filter(r=>{ const v=normalize(r[field]); return v && !isTerminado(v); }).length);
+    const pendiente = this.FLUJO_ETAPAS.map((_,i)=>activas.length - terminado[i] - enProceso[i]);
+    const descartado = this.FLUJO_ETAPAS.map(()=>descartadosCount);
+
+    this.chartGseeEstatus = new Chart(ctx, {
+      type:'bar',
+      data:{
+        labels,
+        datasets:[
+          {label:'Terminado', data: terminado, backgroundColor:'#1A9E6A', borderRadius:4, stack:'s'},
+          {label:'En proceso', data: enProceso, backgroundColor:'#F5A623', borderRadius:4, stack:'s'},
+          {label:'Pendiente', data: pendiente, backgroundColor:'#E8DCE9', borderRadius:4, stack:'s'},
+          {label:'Descartado', data: descartado, backgroundColor:'#FCA5A5', borderRadius:4, stack:'s'},
+        ]
+      },
+      options:{
+        indexAxis:'y',
+        responsive:true, maintainAspectRatio:false,
+        scales:{ x:{stacked:true, beginAtZero:true, ticks:{precision:0}, grid:{color:'#F0F1F4'}}, y:{stacked:true, grid:{display:false}} },
+        plugins:{ legend:{position:'bottom', labels:{boxWidth:10, font:{family:'DM Sans', size:11}}} }
+      }
+    });
+
+    // En General: desglosa por PM cuáles RPP todavía no completan las 6 etapas (ni están
+    // descartados), para ver de un vistazo A QUIÉN le falta llenar en vez de tener que abrir
+    // "Ver RPPs GSEE" y revisarlos uno por uno.
+    const pendientesBox = document.getElementById('flujo-pendientes-pm');
+    if(pendientesBox){
+      if(this.pm.id !== 'general'){
+        pendientesBox.style.display = 'none';
+      } else {
+        const incompletos = activas.filter(r=>!this.FLUJO_ETAPAS.every(([,field])=>isTerminado(normalize(r[field]))));
+        if(!incompletos.length){
+          pendientesBox.style.display = 'none';
+        } else {
+          const porPm = {};
+          incompletos.forEach(r=>{ const k = r.pmOrigen || 'Sin PM'; porPm[k] = (porPm[k]||0)+1; });
+          const entries = Object.entries(porPm).sort((a,b)=>b[1]-a[1]);
+          pendientesBox.style.display = 'block';
+          pendientesBox.innerHTML = `<div style="font-size:11.5px; font-weight:600; color:var(--t2); margin-bottom:6px;">Falta completar el flujo (${incompletos.length} RPP) — por PM:</div>` +
+            `<div style="display:flex; gap:6px; flex-wrap:wrap;">` +
+            entries.map(([pm,count])=>`<span class="status-pill status-pendiente">${escapeHtml(pm)} <strong>${count}</strong></span>`).join('') +
+            `</div>`;
+        }
+      }
+    }
+  },
+
+  // Etapa más avanzada del flujo que ya tiene algo llenado, en el orden fijo de FLUJO_ETAPAS.
+  // Si el RPP está marcado como descartado (rojo), eso manda sobre cualquier etapa que ya
+  // traiga llena — no tiene caso decir "en proceso" de algo que ya no se va a seguir.
+  etapaActual(row){
+    if(row.descartado) return 'Descartado';
+    let last = -1;
+    this.FLUJO_ETAPAS.forEach(([, field], i)=>{ if(row[field]) last = i; });
+    return last>=0 ? this.FLUJO_ETAPAS[last][0] : 'Sin iniciar';
+  },
+  // Si esa etapa no trae simplemente "Terminado"/"OK" sino un comentario libre (p.ej.
+  // "esperando respuesta de proveedor"), se rescata ese texto para no perderlo — si no,
+  // solo se sabría que está "en proceso" sin decir en qué va exactamente.
+  etapaComentario(row){
+    let last = -1;
+    this.FLUJO_ETAPAS.forEach(([, field], i)=>{ if(row[field]) last = i; });
+    if(last<0) return '';
+    const raw = row[this.FLUJO_ETAPAS[last][1]];
+    const v = normalize(raw);
+    return (v && v!=='terminado' && v!=='trminado' && v!=='ok') ? raw : '';
+  },
+
+  openFlujoList(){
+    document.getElementById('flujo-search').value = '';
+    this.renderFlujoList();
+    document.getElementById('modal-flujo-bg').classList.add('active');
+  },
+  closeFlujoList(){ document.getElementById('modal-flujo-bg').classList.remove('active'); },
+  renderFlujoList(){
+    const search = document.getElementById('flujo-search').value.trim().toLowerCase();
+    const all = this.flujoRows || [];
+    const rowsToShow = search ? all.filter(r=>{
+      const hay = (r.proyecto+' '+r.rpp+' '+r.unidad).toLowerCase();
+      return hay.indexOf(search) !== -1;
+    }) : all;
+    const tbody = document.getElementById('flujo-table-body');
+    tbody.innerHTML = rowsToShow.length ? rowsToShow.map((r,i)=>{
+      const statusCls = estatusPillClass(r.estatus);
+      const comentario = this.etapaComentario(r);
+      return `<tr>
+        <td>${i+1}</td>
+        <td class="pm-col">${escapeHtml(r.pmOrigen||'—')}</td>
+        <td><span class="unidad-tag">${escapeHtml(r.unidad)}</span></td>
+        <td>${escapeHtml(r.rpp)}</td>
+        <td>${escapeHtml(r.anio)}</td>
+        <td class="proj-name">${escapeHtml(r.proyecto)}</td>
+        <td><span class="status-pill ${statusCls}">${escapeHtml(r.estatus)}</span></td>
+        <td>${r.descartado ? `<span class="badge badge-descartado">Descartado</span>` : escapeHtml(this.etapaActual(r))}${comentario ? `<div class="quicklist-raw-note">"${escapeHtml(comentario)}"</div>` : ''}</td>
+        <td><span class="row-link" data-rpp="${escapeAttr(r.rpp)}">Ver detalle →</span></td>
+      </tr>`;
+    }).join('') : `<tr class="empty-row"><td colspan="9">No encontramos solicitudes GSEE con esa búsqueda.</td></tr>`;
+    tbody.querySelectorAll('.row-link').forEach(el=>{
+      el.onclick = ()=>{
+        const row = all.find(r=>r.rpp === el.dataset.rpp);
+        this.closeFlujoList();
+        if(row) this.openModal(row);
+      };
+    });
+    document.getElementById('flujo-count-label').textContent =
+      rowsToShow.length === all.length ? all.length : `${rowsToShow.length} de ${all.length}`;
+  },
+
+  // Modal genérico para "de dónde salió ese número": se usa desde los desgloses de las
+  // tarjetas de KPI (p.ej. "sin categoría: 4" en RPPs TI, o el hueco entre "de 87 INFRA en
+  // total" y las que sí son TI) para mostrar exactamente qué RPPs son, en vez de dejar solo
+  // el conteo.
+  openQuickList(title, subtitle, rows){
+    document.getElementById('quicklist-title').innerHTML = `${escapeHtml(title)} (<span id="quicklist-count-label">${rows.length}</span>)`;
+    document.getElementById('quicklist-sub').textContent = subtitle;
+    const tbody = document.getElementById('quicklist-table-body');
+    tbody.innerHTML = rows.length ? rows.map((r,i)=>{
+      const statusCls = estatusPillClass(r.estatus);
+      return `<tr>
+        <td>${i+1}</td>
+        <td class="pm-col">${escapeHtml(r.pmOrigen||'—')}</td>
+        <td><span class="unidad-tag">${escapeHtml(r.unidad)}</span></td>
+        <td>${escapeHtml(r.rpp)}</td>
+        <td>${escapeHtml(r.anio)}</td>
+        <td class="proj-name">${escapeHtml(r.proyecto)}</td>
+        <td>${r.gseeCategory ? `<span class="badge badge-gsee">${escapeHtml(r.gseeCategory)}</span>` : '—'}${r.gseeInfra ? `<div class="quicklist-raw-note">"${escapeHtml(r.gseeInfra)}"</div>` : ''}</td>
+        <td><span class="status-pill ${statusCls}">${escapeHtml(r.estatus)}</span></td>
+        <td><span class="row-link" data-rpp="${escapeAttr(r.rpp)}">Ver detalle →</span></td>
+      </tr>`;
+    }).join('') : `<tr class="empty-row"><td colspan="9">No hay RPPs en este grupo.</td></tr>`;
+    tbody.querySelectorAll('.row-link').forEach(el=>{
+      el.onclick = ()=>{
+        const row = rows.find(r=>r.rpp === el.dataset.rpp);
+        this.closeQuickList();
+        if(row) this.openModal(row);
+      };
+    });
+    document.getElementById('modal-quicklist-bg').classList.add('active');
+  },
+  closeQuickList(){ document.getElementById('modal-quicklist-bg').classList.remove('active'); },
+
+  renderGseeChart(){
+    const canvas = document.getElementById('chart-gsee');
+    const card = canvas.closest('.chart-card');
+    // Esta gráfica es específicamente de las solicitudes que requieren TI (coherente con
+    // las tarjetas "RPPs GSEE con TI" / "RPPs Infraestructura con TI" de arriba, que son
+    // ese mismo subconjunto), no de todo el portafolio del año.
+    const yr = this.yearRows().filter(r=>r.ti);
+    // Se incluyen también las filas sin nada capturado en la columna de GSEE/INFRA, como
+    // "Sin categoría", para que el pastel represente el 100% de las solicitudes con TI, no
+    // solo la parte ya clasificada.
+    const counts = {};
+    yr.forEach(r=>{ const cat = r.gseeCategory || 'Sin categoría'; counts[cat] = (counts[cat]||0)+1; });
+    const colorMap = {'GSEE':'#803F85', 'INFRA':'#2563EB', 'Ambos (GSEE + INFRA)':'#1A9E6A', 'Otro':'#64748B', 'Sin categoría':'#CBD5E1'};
+    const labels = Object.keys(counts).sort((a,b)=>counts[b]-counts[a]);
+
+    // "Otro" son solicitudes con algo escrito en la columna de GSEE/INFRA que no es ni
+    // "gsee" ni "infra" (p.ej. "ITBP"); "Sin categoría" son las que no tienen nada escrito
+    // ahí. En ambos casos se puede ver el detalle con el texto original tal cual venía en
+    // el archivo, para saber qué es sin adivinar.
+    const otroRows = yr.filter(r=>r.gseeCategory==='Otro');
+    const sinCategoriaRows = yr.filter(r=>!r.gseeCategory);
+    const linkOtro = document.getElementById('link-gsee-otro');
+    if(linkOtro){
+      const parts = [];
+      if(otroRows.length) parts.push(`<span class="kpi-link" id="link-gsee-otro-inner">${otroRows.length} "Otro"</span>`);
+      if(sinCategoriaRows.length) parts.push(`<span class="kpi-link" id="link-gsee-sincat-inner">${sinCategoriaRows.length} sin categoría</span>`);
+      if(parts.length){
+        linkOtro.style.display = '';
+        linkOtro.innerHTML = 'Ver: ' + parts.join(' · ');
+        const innerOtro = document.getElementById('link-gsee-otro-inner');
+        if(innerOtro) innerOtro.onclick = ()=>this.openQuickList('Otro (ni GSEE ni INFRA)', 'Solicitudes con algo escrito en la columna de GSEE/INFRA que no es ni "GSEE" ni "INFRA" — se muestra el texto original tal cual venía en el archivo.', otroRows);
+        const innerSinCat = document.getElementById('link-gsee-sincat-inner');
+        if(innerSinCat) innerSinCat.onclick = ()=>this.openQuickList('Sin categoría GSEE/INFRA', 'Solicitudes sin nada capturado en la columna de GSEE/INFRA.', sinCategoriaRows);
+      } else {
+        linkOtro.style.display = 'none';
+      }
+    }
+
+    // Sin datos, o con una sola categoría (un pastel de un solo color no dice nada), se
+    // oculta la tarjeta completa.
+    if(this.chartGsee) this.chartGsee.destroy();
+    if(labels.length <= 1){
+      this.chartGsee = null;
+      if(card) card.style.display = 'none';
+      return;
+    }
+    if(card) card.style.display = '';
+    const data = labels.map(l=>counts[l]);
+    const colors = labels.map(l=>colorMap[l] || '#64748B');
+    // Con el conteo directo en la leyenda (no solo el color), la gráfica dice los mismos
+    // números que ya se ven arriba en las tarjetas de KPI ("RPPs GSEE con TI: de 33 GSEE en
+    // total", etc.) en vez de quedarse solo con colores y porcentajes al pasar el mouse.
+    const displayLabels = labels.map(l=>`${l} (${counts[l]})`);
+
+    const ctx = canvas.getContext('2d');
+    this.chartGsee = new Chart(ctx, {
+      type:'pie',
+      data:{ labels: displayLabels, datasets:[{ data, backgroundColor: colors, borderWidth:0 }] },
+      options:{
+        responsive:true, maintainAspectRatio:false,
+        plugins:{ legend:{position:'bottom', labels:{boxWidth:9, font:{family:'DM Sans', size:10}, padding:6}} }
+      }
+    });
+  },
+
+  renderHorizontalBar(canvasId, field, refName){
+    const canvas = document.getElementById(canvasId);
+    const card = canvas.closest('.chart-card');
+    const counts = {};
+    this.yearRows().forEach(r=>{ const v = r[field] || 'Sin clasificar'; counts[v] = (counts[v]||0)+1; });
+    const labels = Object.keys(counts).sort((a,b)=>counts[b]-counts[a]);
+    // Una gráfica con una sola categoría no aporta nada (una sola barra); se oculta la
+    // tarjeta completa hasta que el portafolio tenga más variedad.
+    if(this[refName]) this[refName].destroy();
+    if(labels.length <= 1){
+      this[refName] = null;
+      if(card) card.style.display = 'none';
+      return;
+    }
+    if(card) card.style.display = '';
+    const data = labels.map(l=>counts[l]);
+    const total = data.reduce((a,b)=>a+b,0);
+
+    const ctx = canvas.getContext('2d');
+    this[refName] = new Chart(ctx, {
+      type:'bar',
+      data:{ labels, datasets:[{ data, backgroundColor: '#803F85', borderRadius:4, borderSkipped:false, maxBarThickness:18 }] },
+      options:{
+        indexAxis:'y',
+        responsive:true, maintainAspectRatio:false,
+        scales:{ x:{beginAtZero:true, ticks:{precision:0, maxTicksLimit:5}, grid:{color:'#EFE8F0'}, border:{display:false}}, y:{grid:{display:false}, ticks:{color:'#5B4A5D', font:{family:'DM Sans', size:11}}} },
+        plugins:{ legend:{display:false}, tooltip:{callbacks:{label: c => ` ${c.raw} solicitudes · ${Math.round(c.raw/total*100)}%`}} }
+      }
+    });
+  },
+
+  renderChartUnidad(){
+    const canvas = document.getElementById('chart-unidad');
+    const card = canvas.closest('.chart-card');
+    const yr = this.yearRows();
+    const byUnidad = {};
+    yr.forEach(r=>{ byUnidad[r.unidad] = (byUnidad[r.unidad]||0)+1; });
+    const allLabels = Object.keys(byUnidad).sort((a,b)=>byUnidad[b]-byUnidad[a]);
+    if(this.chartUnidad) this.chartUnidad.destroy();
+    if(allLabels.length <= 1){ this.chartUnidad = null; if(card) card.style.display = 'none'; return; }
+    if(card) card.style.display = '';
+
+    // Limitar a top 20 para legibilidad; si hay más se indica cuántas quedan fuera
+    const MAX = 20;
+    const labels = allLabels.slice(0, MAX);
+    const omitidas = allLabels.length - labels.length;
+
+    // Altura dinámica: 28px por barra, mínimo 260px
+    const chartH = Math.max(260, labels.length * 28);
+    canvas.parentElement.style.height = chartH + 'px';
+
+    const dataTot = labels.map(u => byUnidad[u]);
+    const dataApr = labels.map(u => yr.filter(r=>r.unidad===u && /^aprob/i.test(r.estatus)).length);
+    const dataRech = labels.map(u => yr.filter(r=>r.unidad===u && /^rechaz/i.test(r.estatus)).length);
+    const dataPend = labels.map(u => dataTot[labels.indexOf(u)] - dataApr[labels.indexOf(u)] - dataRech[labels.indexOf(u)]);
+
+    // Abreviar nombres largos de unidad para que quepan en el eje
+    const shortLabel = l => l.length > 28 ? l.slice(0, 26) + '…' : l;
+
+    const ctx = canvas.getContext('2d');
+    this.chartUnidad = new Chart(ctx, {
+      type: 'bar',
+      data:{
+        labels: labels.map(shortLabel),
+        datasets:[
+          {label:'Aprobadas',  data:dataApr,  backgroundColor:'#1A9E6A', borderColor:'#fff', borderWidth:{right:2}, borderSkipped:false, maxBarThickness:18},
+          {label:'Rechazadas', data:dataRech, backgroundColor:'#d03b3b', borderColor:'#fff', borderWidth:{right:2}, borderSkipped:false, maxBarThickness:18},
+          {label:'En proceso', data:dataPend, backgroundColor:'#fab219', borderColor:'#fff', borderWidth:{right:2}, borderSkipped:false, maxBarThickness:18},
+        ]
+      },
+      options:{
+        indexAxis: 'y',
+        responsive:true, maintainAspectRatio:false,
+        scales:{
+          x:{stacked:true, beginAtZero:true, ticks:{precision:0}, grid:{color:'#F0F1F4'}},
+          y:{stacked:true, grid:{display:false}, ticks:{font:{family:'DM Sans', size:10.5}}}
+        },
+        plugins:{
+          legend:{position:'bottom', labels:{boxWidth:10, font:{family:'DM Sans', size:11}}},
+          tooltip:{callbacks:{title: items => allLabels[items[0].dataIndex] || items[0].label}},
+        }
+      }
+    });
+
+    // Nota de unidades omitidas
+    let nota = card.querySelector('.chart-omitidas-nota');
+    if(omitidas > 0){
+      if(!nota){ nota = document.createElement('div'); nota.className = 'chart-omitidas-nota'; nota.style.cssText='font-size:11px;color:#A889AB;text-align:center;padding:4px 0 0'; card.appendChild(nota); }
+      nota.textContent = `Mostrando top ${MAX} de ${allLabels.length} unidades`;
+    } else if(nota){ nota.remove(); }
+  },
+
+  renderDonut(canvasId, field, refName){
+    const canvas = document.getElementById(canvasId);
+    const card = canvas.closest('.chart-card');
+    const counts = {};
+    this.yearRows().forEach(r=>{ const v = r[field] || 'Sin clasificar'; counts[v] = (counts[v]||0)+1; });
+    const labels = Object.keys(counts).sort((a,b)=>counts[b]-counts[a]);
+    // Una dona con una sola categoría es un círculo de un solo color, no aporta nada.
+    if(this[refName]) this[refName].destroy();
+    if(labels.length <= 1){
+      this[refName] = null;
+      if(card) card.style.display = 'none';
+      return;
+    }
+    if(card) card.style.display = '';
+    // Paleta categórica validada (orden fijo); a partir de la 7ª categoría se agrupa en "Otros"
+    const palette = ['#2a78d6','#eb6834','#1baf7a','#eda100','#e87ba4','#6250d6'];
+    let shownLabels = labels, data = labels.map(l=>counts[l]);
+    if(labels.length > palette.length){
+      shownLabels = labels.slice(0, palette.length - 1).concat('Otros');
+      data = shownLabels.map((l,i)=> i < palette.length - 1 ? counts[l] : labels.slice(palette.length - 1).reduce((s,x)=>s+counts[x],0));
+    }
+    const colors = shownLabels.map((l,i)=> l === 'Otros' ? '#B9AEBB' : palette[i]);
+    const total = data.reduce((a,b)=>a+b,0);
+
+    const ctx = canvas.getContext('2d');
+    this[refName] = new Chart(ctx, {
+      type:'doughnut',
+      data:{ labels: shownLabels, datasets:[{ data, backgroundColor: colors, borderColor:'#fff', borderWidth:2 }] },
+      options:{
+        responsive:true, maintainAspectRatio:false, cutout:'62%',
+        plugins:{
+          legend:{position:'bottom', labels:{boxWidth:10, color:'#5B4A5D', font:{family:'DM Sans', size:11}, padding:10}},
+          tooltip:{callbacks:{label: c => ` ${c.label}: ${c.raw} · ${Math.round(c.raw/total*100)}%`}}
+        }
+      }
+    });
+  },
+
+  exportFiltered(){
+    const data = this.filtered.map(r=>({
+      'Unidad': r.unidad, 'No. RPP': r.rpp, 'Año': r.anio, 'Proyecto': r.proyecto,
+      'Id de Proyecto': r.idProyecto, 'Tipo de Tarea': r.tipoTarea, 'Tipo de Proyecto': r.tipoProyecto,
+      'Prioridad': r.prioridad, 'Solicitante': r.solicitante, 'Responsable': r.responsable, 'Creado por': r.creadoPor,
+      'Construcción': r.construccion?'Sí':'No', 'Mantenimiento': r.mantenimiento?'Sí':'No',
+      'Biomédica': r.biomedica?'Sí':'No', 'TI': r.ti?'Sí':'No', 'Estatus': r.estatus,
+      'Descripción': r.descripcion, 'Comentarios': r.comentarios, 'Alcance': r.alcance, 'GSEE/INFRA': r.gseeInfra,
+      'Estatus GSEE': r.estatusGsee,
+    }));
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Filtrado');
+    const fname = `CAPEX_${this.pm.short.replace(/\s+/g,'_')}_filtrado.xlsx`;
+    XLSX.writeFile(wb, fname);
+  },
+};
+
+/* ===================== HELPERS ===================== */
+// Expande una lista de File (que puede incluir .zip) a una lista plana de Excel legibles.
+// Cada .zip se abre con JSZip y se recorre completo (cualquier subcarpeta adentro), tomando
+// solo .xlsx/.xlsm/.xls; los archivos que no son .zip pasan tal cual. Se usa tanto para
+// subir el archivo principal del PM como para las plantillas de presupuesto, por eso vive
+// como helper compartido en vez de estar duplicado en cada uno.
+async function expandFilesAndZips(files){
+  const result = []; // {name, getBuffer: () => Promise<ArrayBuffer>}
+  const zipErrors = [];
+  for(const file of files){
+    if(/\.zip$/i.test(file.name)){
+      try{
+        const zipBuf = await file.arrayBuffer();
+        const zip = await JSZip.loadAsync(zipBuf);
+        Object.keys(zip.files).forEach(relPath=>{
+          const entry = zip.files[relPath];
+          if(entry.dir || !/\.(xlsx|xlsm|xls)$/i.test(relPath)) return;
+          const baseName = relPath.split('/').pop();
+          result.push({name: baseName, getBuffer: ()=>entry.async('arraybuffer')});
+        });
+      } catch(err){ zipErrors.push(file.name + ' (zip inválido o dañado)'); }
+    } else if(/\.(xlsx|xlsm|xls)$/i.test(file.name)){
+      result.push({name: file.name, getBuffer: ()=>file.arrayBuffer()});
+    }
+    // otros tipos de archivo (.docx, .pdf, .msg, etc., que suelen venir mezclados en una
+    // carpeta de PM) se ignoran en silencio, no son ni el principal ni una plantilla.
+  }
+  return {files: result, zipErrors};
+}
+function normalize(s){
+  return String(s||'').trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/\s+/g,' ');
+}
+function findIndex(normHeaders, candidates){
+  for(const c of candidates){ const i = normHeaders.indexOf(c); if(i>=0) return i; }
+  for(const c of candidates){ const i = normHeaders.findIndex(h=>h && h.indexOf(c)>=0); if(i>=0) return i; }
+  return -1;
+}
+function get(arr, idx){
+  if(idx==null || idx<0) return null;
+  const v = arr[idx];
+  if(v==null) return null;
+  if(typeof v === 'string') return v.replace(/[‪‬‎‏]/g,'').trim();
+  return v;
+}
+function rowHasArea(r, area){
+  return !!r[area];
+}
+function gseeCategoryOf(raw){
+  const s = String(raw||'').trim().toLowerCase();
+  if(!s || s==='n/a' || s==='na' || s==='-') return '';
+  const hasGsee = s.indexOf('gsee')>=0 || s.indexOf('gss')>=0;
+  // 'inffra' cubre el typo confirmado en el archivo de Alexia ("INFFRAESTRUCTURA", con doble F).
+  const hasInfra = s.indexOf('infra')>=0 || s.indexOf('inffra')>=0;
+  if(hasGsee && hasInfra) return 'Ambos (GSEE + INFRA)';
+  if(hasGsee) return 'GSEE';
+  if(hasInfra) return 'INFRA';
+  return 'Otro';
+}
+function estatusPillClass(estatus){
+  if(/^aprob/i.test(estatus)) return 'status-aprobado';
+  if(/^rechaz/i.test(estatus)) return 'status-rechazado';
+  if(/^cancel/i.test(estatus)) return 'status-cancelado';
+  if(/pendiente/i.test(estatus)) return 'status-pendiente';
+  return 'status-other';
+}
+function canonicalizer(){
+  const seen = new Map();
+  return function(v){
+    const s = String(v||'').trim();
+    if(!s) return s;
+    const key = s.toLowerCase();
+    if(!seen.has(key)) seen.set(key, s);
+    return seen.get(key);
+  };
+}
+function toBool(v){
+  if(typeof v==='boolean') return v;
+  if(v==null) return false;
+  const s = String(v).trim().toLowerCase();
+  return s==='true' || s==='1' || s==='si' || s==='sí' || s==='x' || s==='yes';
+}
+// Alexia no tiene columna "Aplica TI" como Alexis; en su lugar anota en "Comentarios"/
+// "Comentarios TI" texto libre que empieza con "sí" o "no" (a veces con algo más después,
+// p.ej. "si/validar" o "no aplica"). Devuelve true/false si el texto es claro, o null si es
+// ambiguo (p.ej. "validar", "INFRA", "N/A") para que se use el checkbox "TI" viejo como respaldo.
+function parseSiNoComment(v){
+  const s = String(v||'').trim().toLowerCase();
+  if(!s) return null;
+  if(/^s(i|í)\b/.test(s)) return true;
+  if(/^no\b/.test(s)) return false;
+  return null;
+}
+function formatMoney(v){
+  if(v==null || v==='') return '';
+  const n = parseFloat(v);
+  if(isNaN(n)) return String(v);
+  return '$' + n.toLocaleString('es-MX', {maximumFractionDigits:0});
+}
+function formatDate(v){
+  if(v==null || v==='') return '';
+  // Excel guarda las fechas como número de serie (días desde 1899-12-30); si ya viniera
+  // como texto de fecha se muestra tal cual.
+  const n = typeof v === 'number' ? v : parseFloat(v);
+  if(isNaN(n)) return String(v);
+  const d = new Date(Math.round((n - 25569) * 86400 * 1000));
+  if(isNaN(d.getTime())) return String(v);
+  return d.toLocaleDateString('es-MX', {year:'numeric', month:'2-digit', day:'2-digit', timeZone:'UTC'});
+}
+function formatSavedDate(ts){
+  if(!ts) return '';
+  const d = new Date(ts);
+  const hoy = new Date();
+  const esHoy = d.toDateString() === hoy.toDateString();
+  const hora = d.toLocaleTimeString('es-MX', {hour:'2-digit', minute:'2-digit'});
+  return esHoy ? `hoy ${hora}` : d.toLocaleDateString('es-MX', {day:'2-digit', month:'2-digit', year:'numeric'}) + ` ${hora}`;
+}
+function uniqueSorted(arr){
+  return Array.from(new Set(arr.filter(v=>v!==undefined && v!==null && v!=='').map(String))).sort((a,b)=>a.localeCompare(b,'es'));
+}
+function fillSelect(id, options){
+  const sel = document.getElementById(id);
+  const current = sel.value;
+  sel.innerHTML = `<option value="">${sel.options[0].textContent}</option>` + options.map(o=>`<option value="${escapeAttr(o)}">${escapeHtml(o)}</option>`).join('');
+  if(options.includes(current)) sel.value = current;
+}
+function escapeHtml(s){
+  return String(s==null?'':s).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+}
+function escapeAttr(s){ return escapeHtml(s); }
+
+/* ===================== INIT ===================== */
+// El menú separa a los PM con unidades propias (avatar con sus iniciales, como en el
+// resto de la app) de las vistas que no son una persona — Staff GSEE (roadmap curado) y
+// General (concentrado) — que llevan un ícono en vez de iniciales para no dar a entender
+// que son otro PM más.
+function pmCardHtml(pm, opts){
+  opts = opts || {};
+  const avatarInner = opts.icon ? `<i class="ti ${opts.icon}" aria-hidden="true"></i>` : escapeHtml(pm.initials);
+  return `
+  <div class="pm-card" style="--pm-color:${pm.color}" data-pm="${pm.id}">
+    <div class="pm-avatar">${avatarInner}</div>
+    <div class="pm-card-body">
+      <div class="pm-card-name">${pm.short}</div>
+      <div class="pm-card-tag">${opts.tag || 'Ver mi dashboard'}</div>
+    </div>
+    <i class="ti ti-chevron-right pm-card-arrow" aria-hidden="true"></i>
+  </div>`;
+}
+const personPMs = PM_LIST.filter(pm=>pm.id !== 'staffgsee');
+const staffGseePM = PM_LIST.find(pm=>pm.id === 'staffgsee');
+document.getElementById('pm-grid').innerHTML =
+  `<div class="pm-group-label">Project Managers</div>` +
+  personPMs.map(pm=>pmCardHtml(pm)).join('') +
+  `<div class="pm-group-label">Vistas generales</div>` +
+  (staffGseePM ? pmCardHtml(staffGseePM, {icon:'ti-route', tag:'Roadmap de proyectos GSEE'}) : '') +
+  pmCardHtml(GENERAL_PM, {icon:'ti-chart-infographic', tag:'Concentrado de los 4 PM'});
+document.querySelectorAll('.pm-card').forEach(card=>{
+  card.onclick = ()=>{
+    if(card.dataset.pm === GENERAL_PM.id){ App.selectGeneral(); return; }
+    const pm = PM_LIST.find(p=>p.id===card.dataset.pm);
+    App.selectPM(pm);
+  };
+});
+
+const dropzone = document.getElementById('dropzone');
+const fileInput = document.getElementById('file-input');
+['dragover'].forEach(ev=>dropzone.addEventListener(ev, e=>{ e.preventDefault(); dropzone.classList.add('drag'); }));
+['dragleave','drop'].forEach(ev=>dropzone.addEventListener(ev, e=>{ e.preventDefault(); dropzone.classList.remove('drag'); }));
+dropzone.addEventListener('drop', e=>{
+  if(e.dataTransfer.files.length) App.handleUnifiedUpload(e.dataTransfer.files);
+});
+fileInput.addEventListener('change', e=>{
+  if(e.target.files.length) App.handleUnifiedUpload(e.target.files);
+  e.target.value = '';
+});
+
+document.getElementById('budget-template-input').addEventListener('change', e=>{
+  App.handleBudgetTemplateFiles(e.target.files);
+  e.target.value = '';
+});
+document.getElementById('modal-budget-bg').addEventListener('click', e=>{
+  if(e.target.id==='modal-budget-bg') App.closeBudgetList();
+});
+document.getElementById('flujo-anio-filter').addEventListener('change', e=>{
+  App.flujoAnioFilter = e.target.value;
+  App.renderGseeEstatusChart();
+});
+
+// Deja la primera entrada del historial marcada como "login" para que el botón atrás
+// del navegador navegue entre pantallas de la app (login → upload → dashboard) en vez
+// de salir del archivo por completo y quedarse cargando la página anterior.
+history.replaceState({screen:'screen-login'}, '', location.pathname + location.search);
+window.addEventListener('popstate', (e)=>{
+  const screen = (e.state && e.state.screen) || 'screen-login';
+  if(screen === 'screen-dashboard' && App.rows.length){
+    App.showScreen('screen-dashboard');
+  } else if(screen === 'screen-upload' && App.pm){
+    App.goToUpload(true);
+  } else {
+    App.goToLogin(true);
+  }
+});
+
+document.getElementById('f-search').addEventListener('input', ()=>App.applyFilters());
+['f-anio','f-tarea','f-tipoproy','f-estatus','f-gseecat','f-area'].forEach(id=>{
+  document.getElementById(id).addEventListener('change', ()=>App.applyFilters());
+});
+document.getElementById('btn-toggle-filters').addEventListener('click', ()=>{
+  document.getElementById('filters-drawer').classList.toggle('open');
+});
+document.getElementById('btn-clear').addEventListener('click', ()=>{
+  document.getElementById('f-search').value = '';
+  ['f-anio','f-tarea','f-tipoproy','f-estatus','f-gseecat','f-area'].forEach(id=>document.getElementById(id).value='');
+  App.currentUnit = '';
+  App.applyFilters();
+});
+document.querySelectorAll('thead th[data-sort]').forEach(th=>{
+  th.addEventListener('click', ()=>{
+    const key = th.dataset.sort;
+    if(App.sortKey===key) App.sortDir*=-1; else { App.sortKey=key; App.sortDir=1; }
+    document.querySelectorAll('thead th .arrow').forEach(a=>{ a.className = 'ti ti-arrows-sort arrow'; });
+    th.querySelector('.arrow').className = App.sortDir===1 ? 'ti ti-arrow-up arrow' : 'ti ti-arrow-down arrow';
+    App.sortRows();
+    App.renderTable();
+  });
+});
+document.getElementById('modal-bg').addEventListener('click', e=>{
+  if(e.target.id==='modal-bg') App.closeModal();
+});
+document.getElementById('modal-summary-bg').addEventListener('click', e=>{
+  if(e.target.id==='modal-summary-bg') App.closeSummary();
+});
+document.getElementById('summary-search').addEventListener('input', ()=>App.renderSummaryTable());
+document.getElementById('flujo-search').addEventListener('input', ()=>App.renderFlujoList());
+document.getElementById('modal-flujo-bg').addEventListener('click', e=>{
+  if(e.target.id==='modal-flujo-bg') App.closeFlujoList();
+});
+document.getElementById('modal-quicklist-bg').addEventListener('click', e=>{
+  if(e.target.id==='modal-quicklist-bg') App.closeQuickList();
+});
+
+// Barra de scroll horizontal duplicada arriba de la tabla (además de la de abajo), para no
+// tener que bajar hasta el fondo de la tabla para moverla lateralmente.
+(function(){
+  const top = document.getElementById('table-scroll-top');
+  const bottom = document.getElementById('table-scroll');
+  let syncing = false;
+  top.addEventListener('scroll', ()=>{ if(syncing) return; syncing = true; bottom.scrollLeft = top.scrollLeft; syncing = false; });
+  bottom.addEventListener('scroll', ()=>{ if(syncing) return; syncing = true; top.scrollLeft = bottom.scrollLeft; syncing = false; });
+  window.addEventListener('resize', ()=>App.syncTableScrollWidth());
+})();
+
+// Entrada siempre desde el ecosistema — screen-login nunca se muestra
+(function(){
+  try {
+    const usuario = sessionStorage.getItem('gsee_usuario');
+    sessionStorage.removeItem('gsee_usuario');
+
+    // Vista general
+    if (usuario === 'general') { App.selectGeneral(); return; }
+
+    // PM específico enviado desde el ecosistema
+    let pm = usuario
+      ? PM_LIST.find(p => p.id === usuario || p.name === usuario || p.short === usuario)
+      : null;
+
+    // Si no llegó PM desde el ecosistema, intentar cargar el último PM con datos guardados
+    if (!pm) {
+      pm = PM_LIST.find(p => { const s = App.readStorage(p.id); return s && s.rows && s.rows.length; });
+    }
+
+    // Sin PM ni datos → redirigir al ecosistema para seleccionar
+    if (!pm) { window.location.replace('../Dashboard.html'); return; }
+
+    const saved = App.readStorage(pm.id);
+
+    function doSelectPM(p) {
+      const orig = App.goToUpload.bind(App);
+      if (saved && saved.rows && saved.rows.length) {
+        // Datos guardados → saltar upload, ir directo al dashboard
+        App.goToUpload = function(){ App.loadData(saved.rows, saved.summaryRows || []); App.goToUpload = orig; };
+      } else {
+        // Sin datos → mostrar pantalla de carga del ecosistema
+        App.goToUpload = function(){
+          App.goToUpload = orig;
+          document.getElementById('ecosistema-pm-av').textContent = p.initials;
+          document.getElementById('ecosistema-pm-av').style.background = p.color;
+          document.getElementById('ecosistema-pm-name').textContent = p.name;
+          App.showScreen('screen-ecosistema-upload');
+        };
+      }
+      App.selectPM(p);
+    }
+
+    doSelectPM(pm);
+  } catch(e) {
+    console.error('Ecosistema auto-select error:', e);
+    window.location.replace('../Dashboard.html');
+  }
+})();
+
+// ── PM Switcher in-page modal ──────────────────────────────────────────────
+App.openPmSwitcher = function() {
+  const overlay = document.getElementById('pm-switcher-overlay');
+  const grid = document.getElementById('pm-switcher-grid');
+
+  // Build cards
+  const allPMs = [...PM_LIST, {id:'general', name:'General', short:'General', firstName:'General', color:'#374151', initials:'GEN', isGeneral:true}];
+  grid.innerHTML = allPMs.map(p => {
+    const hasData = p.isGeneral ? false : !!(App.readStorage(p.id));
+    const isGeneral = !!p.isGeneral;
+    return `<button onclick="App._switcherSelectPm('${p.id}')" style="
+      background:#FAFAFA;border:2px solid #E8DCE9;border-radius:16px;padding:16px 12px;
+      display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer;
+      transition:border-color .15s,box-shadow .15s;${isGeneral?'grid-column:1/-1;flex-direction:row;justify-content:center;gap:14px;':''}
+      " onmouseover="this.style.borderColor='${p.color}';this.style.boxShadow='0 4px 16px rgba(0,0,0,.1)'"
+         onmouseout="this.style.borderColor='#E8DCE9';this.style.boxShadow='none'">
+      <div style="width:42px;height:42px;border-radius:50%;background:${p.color};display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:#fff;flex-shrink:0;">${p.initials}</div>
+      <div style="text-align:center;">
+        <div style="font-size:13px;font-weight:700;color:#1E0F20;">${p.name}</div>
+        ${!isGeneral ? `<div style="font-size:11px;color:${hasData?'#1A9E6A':'#A889AB'};">${hasData?'● Datos guardados':'Sin datos'}</div>` : ''}
+      </div>
+    </button>`;
+  }).join('');
+
+  overlay.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+};
+
+App.closePmSwitcher = function() {
+  const overlay = document.getElementById('pm-switcher-overlay');
+  overlay.style.display = 'none';
+  document.body.style.overflow = '';
+};
+
+App._switcherSelectPm = function(pmId) {
+  App.closePmSwitcher();
+  if (pmId === 'general') { App.selectGeneral(); return; }
+  const pm = PM_LIST.find(p => p.id === pmId);
+  if (!pm) return;
+  const saved = App.readStorage(pm.id);
+  const orig = App.goToUpload.bind(App);
+  if (saved && saved.rows && saved.rows.length) {
+    App.goToUpload = function(){ App.loadData(saved.rows, saved.summaryRows || []); App.goToUpload = orig; };
+  } else {
+    App.goToUpload = function(){
+      App.goToUpload = orig;
+      document.getElementById('ecosistema-pm-av').textContent = pm.initials;
+      document.getElementById('ecosistema-pm-av').style.background = pm.color;
+      document.getElementById('ecosistema-pm-name').textContent = pm.name;
+      App.showScreen('screen-ecosistema-upload');
+    };
+  }
+  App.selectPM(pm);
+};
+
+// Close switcher on overlay click
+document.getElementById('pm-switcher-overlay').addEventListener('click', function(e){
+  if (e.target === this) App.closePmSwitcher();
+});
+</script>
+</body>
+</html>

@@ -2,211 +2,109 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Ecosistema TI | CHRISTUS MUGUERZA</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none'">
+<meta name="referrer" content="no-referrer">
+<meta name="robots" content="noindex, nofollow">
+<title>Portafolio Expansión TI · CHRISTUS MUGUERZA</title>
+<link rel="stylesheet" href="vendor/tabler/tabler-icons.min.css">
+<link rel="stylesheet" href="dashboard.css">
 <script src="auth.js"></script>
-<link rel="stylesheet" href="estilos.css">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
-<style>
-/* ═══════════ MENÚ · Ecosistema TI ═══════════ */
-.mn{position:fixed;inset:0;z-index:9000;display:flex;align-items:center;justify-content:center;padding:20px;overflow:auto;
-  font-family:'DM Sans',sans-serif;background:linear-gradient(135deg,#170818 0%,#2a0f30 45%,#3a1a40 75%,#1c0b20 100%);
-  transition:opacity .35s ease,visibility .35s ease}
-.mn::before{content:'';position:fixed;inset:0;pointer-events:none;
-  background-image:linear-gradient(rgba(188,139,191,.06) 1px,transparent 1px),linear-gradient(90deg,rgba(188,139,191,.06) 1px,transparent 1px);background-size:56px 56px}
-.mn.hide{opacity:0;visibility:hidden;pointer-events:none}
-@keyframes mnIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
-.mn-card{position:relative;display:grid;grid-template-columns:340px 1fr;width:min(1120px,100%);min-height:600px;border-radius:22px;overflow:hidden;
-  box-shadow:0 40px 90px rgba(0,0,0,.5),0 0 0 1px rgba(255,255,255,.06);animation:mnIn .5s cubic-bezier(.22,1,.36,1) both}
-
-.mn-brand{position:relative;overflow:hidden;color:#fff;padding:40px 36px;display:flex;flex-direction:column;
-  background:linear-gradient(160deg,#4a2150 0%,#3a1a40 55%,#2b1230 100%)}
-.mn-brand::after{content:'';position:absolute;width:360px;height:360px;border-radius:50%;border:1px solid rgba(255,255,255,.07);right:-170px;bottom:-140px}
-.mn-logo{background:#fff;border-radius:14px;padding:10px 16px;align-self:flex-start;box-shadow:0 10px 26px rgba(0,0,0,.25)}
-.mn-logo img{height:46px;width:auto;display:block}
-.mn-logo-fb{display:none;font-size:20px;font-weight:800;color:#5C2B60;padding:4px 6px}
-.mn-dept{margin-top:34px;font-size:10.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.5)}
-.mn-title{font-size:30px;font-weight:800;letter-spacing:-.02em;margin-top:6px;line-height:1.1}
-.mn-sub{font-size:13px;color:rgba(255,255,255,.55);margin-top:6px;line-height:1.5}
-.mn-session{margin-top:auto;display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:12px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.09)}
-.mn-dot{width:8px;height:8px;border-radius:50%;background:#34D399;box-shadow:0 0 0 4px rgba(52,211,153,.18);flex-shrink:0}
-.mn-session-t{font-size:12px;font-weight:600}
-.mn-session-s{font-size:11px;color:rgba(255,255,255,.5)}
-.mn-ver{margin-top:14px;font-size:11px;color:rgba(255,255,255,.3)}
-
-.mn-main{position:relative;background:#FBF8FB;padding:36px 44px;overflow:hidden}
-.mn-step{transition:opacity .3s ease,transform .3s ease}
-.mn-step.out{opacity:0;transform:translateX(-24px);pointer-events:none;position:absolute;inset:36px 44px auto}
-.mn-step.out-r{opacity:0;transform:translateX(24px);pointer-events:none;position:absolute;inset:36px 44px auto}
-.mn-top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:28px}
-.mn-eyebrow{display:inline-flex;align-items:center;gap:6px;font-size:10.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#803F85;background:#F3EAF4;border-radius:999px;padding:5px 10px}
-.mn-ghost{display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 12px;border-radius:9px;border:1px solid #E8DCE9;background:#fff;color:#6B4F6E;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;transition:border-color .2s,color .2s,background .2s}
-.mn-ghost:hover{border-color:#803F85;color:#803F85}
-.mn-ghost.danger:hover{border-color:#D94040;color:#D94040;background:#FEF3F3}
-.mn-h1{font-size:30px;font-weight:800;color:#1E0F20;letter-spacing:-.02em;margin:0}
-.mn-p{font-size:13.5px;color:#6B4F6E;margin:6px 0 24px}
-
-.mn-tools{display:flex;flex-direction:column;gap:12px}
-.mn-tool{background:#fff;border:1.5px solid #EDE3EE;border-radius:16px;overflow:hidden;transition:border-color .2s,box-shadow .2s,transform .15s}
-.mn-tool:hover{border-color:#BC8BBF;box-shadow:0 10px 26px rgba(92,43,96,.1)}
-.mn-tool-row{display:flex;align-items:center;gap:16px;padding:16px 18px;cursor:pointer}
-.mn-ico{width:48px;height:48px;border-radius:13px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
-.mn-ico.p{background:linear-gradient(135deg,#8E4893,#5C2B60);color:#fff}
-.mn-ico.g{background:#ECFDF5;color:#059669}
-.mn-tool-txt{flex:1;min-width:0}
-.mn-tool-name{font-size:15px;font-weight:700;color:#1E0F20}
-.mn-tool-desc{font-size:12.5px;color:#8A6F8D;margin-top:2px}
-.mn-badge{font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;border-radius:999px;padding:4px 10px;flex-shrink:0}
-.mn-badge.p{background:#F3EAF4;color:#803F85}
-.mn-badge.g{background:#E8F7EF;color:#1A9E6A}
-.mn-badge.n{background:#F3F4F6;color:#6B7280}
-.mn-arr{font-size:18px;color:#BC8BBF;flex-shrink:0;transition:transform .2s,color .2s}
-.mn-tool:hover .mn-arr{transform:translateX(3px);color:#803F85}
-
-.mn-file{display:flex;align-items:center;gap:12px;padding:12px 18px;border-top:1px solid #F0E6F1;background:#FBF8FB}
-.mn-file-ico{width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
-.mn-file.has .mn-file-ico{background:#E8F7EF;color:#1A9E6A}
-.mn-file.none .mn-file-ico{background:#F3EAF4;color:#A889AB}
-.mn-file-txt{flex:1;min-width:0}
-.mn-file-t{font-size:12px;font-weight:700;color:#1E0F20}
-.mn-file-s{font-size:11.5px;color:#8A6F8D;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.mn-btn{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 14px;border-radius:9px;border:none;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;transition:filter .2s}
-.mn-btn.primary{background:#1A9E6A;color:#fff}
-.mn-btn.primary:hover{filter:brightness(1.07)}
-.mn-btn.purple{background:#803F85;color:#fff}
-.mn-btn.purple:hover{filter:brightness(1.1)}
-.mn-btn.soft{background:#fff;color:#6B4F6E;border:1px solid #E8DCE9}
-.mn-btn.soft:hover{border-color:#803F85;color:#803F85}
-
-.mn-foot{display:flex;align-items:center;gap:6px;margin-top:22px;font-size:11.5px;color:#A889AB}
-
-.mn-users{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
-.mn-user{background:#fff;border:1.5px solid #EDE3EE;border-radius:14px;padding:16px 10px;display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer;transition:border-color .2s,box-shadow .2s,transform .15s}
-.mn-user:hover{border-color:#803F85;box-shadow:0 8px 20px rgba(92,43,96,.12);transform:translateY(-2px)}
-.mn-user.wide{grid-column:1/-1;flex-direction:row;justify-content:flex-start;padding:14px 18px}
-.mn-av{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px;font-weight:800;flex-shrink:0}
-.mn-user-n{font-size:12.5px;font-weight:700;color:#1E0F20;text-align:center}
-.mn-user-r{font-size:10.5px;color:#A889AB;text-align:center}
-.mn-user.wide .mn-user-n,.mn-user.wide .mn-user-r{text-align:left}
-.mn-pick{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:12px;background:#fff;border:1px solid #EDE3EE;margin-bottom:20px}
-
-@media (max-width:900px){
-  .mn-card{grid-template-columns:1fr;min-height:0}
-  .mn-brand{padding:24px;flex-direction:row;align-items:center;gap:16px;flex-wrap:wrap}
-  .mn-brand .mn-dept,.mn-brand .mn-sub,.mn-brand .mn-ver{display:none}
-  .mn-title{font-size:22px;margin:0}
-  .mn-session{margin-top:0;margin-left:auto}
-  .mn-main{padding:24px 20px}
-  .mn-step.out,.mn-step.out-r{inset:24px 20px auto}
-  .mn-users{grid-template-columns:repeat(2,1fr)}
-}
-@media (max-width:560px){
-  .mn-tool-row{flex-wrap:wrap}
-  .mn-badge{display:none}
-  .mn-file{flex-wrap:wrap}
-  .mn-session{display:none}
-}
-</style>
+<script src="vendor/xlsx.full.min.js" defer></script>
+<script src="vendor/chart.umd.js" defer></script>
+<script src="scripts.js" defer></script>
 </head>
 <body>
 
 <!-- ═══════════ MENÚ PRINCIPAL ═══════════ -->
-<div class="mn" id="splash">
+<div class="mn" id="menu">
   <div class="mn-card">
-
     <aside class="mn-brand">
       <div class="mn-logo">
-        <img src="logo.jpg" alt="CHRISTUS MUGUERZA" onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
-        <div class="mn-logo-fb">CM</div>
+        <img src="logo.jpg" alt="CHRISTUS MUGUERZA" data-fallback="mn-logo-fb">
+        <div class="mn-logo-fb" id="mn-logo-fb" hidden>CM</div>
       </div>
-      <div class="mn-dept">Dirección de TI · GSEE</div>
+      <div class="mn-dept">GSEE · Proyectos TI</div>
       <div class="mn-title">Ecosistema TI</div>
       <div class="mn-sub">Herramientas de planeación y seguimiento de proyectos de tecnología.</div>
       <div class="mn-session">
-        <span class="mn-dot"></span>
+        <span class="mn-dot" aria-hidden="true"></span>
         <div>
           <div class="mn-session-t">Sesión activa</div>
-          <div class="mn-session-s">Expira tras 20 min sin actividad</div>
+          <div class="mn-session-s">Se cierra tras 20 min sin actividad</div>
         </div>
       </div>
-      <div class="mn-ver">v3.0 · 2026</div>
+      <div class="mn-ver">v3.1 · 2026</div>
     </aside>
 
     <section class="mn-main">
-
       <!-- Paso 1: herramientas -->
       <div class="mn-step" id="mn-step-tools">
         <div class="mn-top">
-          <span class="mn-eyebrow"><i class="ti ti-apps"></i> Ecosistema TI · GSEE</span>
-          <button class="mn-ghost danger" onclick="cerrarSesion()"><i class="ti ti-logout"></i> Cerrar sesión</button>
+          <span class="eyebrow"><i class="ti ti-apps"></i> Ecosistema TI · GSEE</span>
+          <button class="btn btn-danger" data-action="logout"><i class="ti ti-logout"></i> Cerrar sesión</button>
         </div>
         <h1 class="mn-h1">¿Qué deseas hacer hoy?</h1>
         <p class="mn-p">Selecciona una herramienta para continuar.</p>
 
         <div class="mn-tools">
-          <!-- Portafolio -->
           <div class="mn-tool">
-            <div class="mn-tool-row" onclick="abrirPortafolio()">
-              <div class="mn-ico p"><i class="ti ti-layout-dashboard"></i></div>
-              <div class="mn-tool-txt">
-                <div class="mn-tool-name">Portafolio Expansión TI 2026</div>
-                <div class="mn-tool-desc">Seguimiento de proyectos, avance y presupuesto por PM y unidad</div>
-              </div>
-              <span class="mn-badge p" id="mn-pf-badge">Activo</span>
+            <button class="mn-tool-row" data-action="open-portfolio">
+              <span class="mn-ico p"><i class="ti ti-layout-dashboard"></i></span>
+              <span class="mn-tool-txt">
+                <span class="mn-tool-name">Portafolio Expansión TI 2026</span>
+                <span class="mn-tool-desc" style="display:block">Seguimiento de proyectos, avance y presupuesto por PM y unidad</span>
+              </span>
+              <span class="pill pill-p" id="mn-pf-pill">Sin archivo</span>
               <i class="ti ti-chevron-right mn-arr"></i>
-            </div>
-            <div class="mn-file none" id="mn-pf-file">
-              <div class="mn-file-ico"><i class="ti ti-file-spreadsheet" id="mn-pf-file-ico"></i></div>
+            </button>
+            <div class="mn-file" id="mn-pf-file">
+              <span class="mn-file-ico"><i class="ti ti-file-spreadsheet" id="mn-pf-ico"></i></span>
               <div class="mn-file-txt">
-                <div class="mn-file-t" id="mn-pf-file-t">Sin archivo en este equipo</div>
-                <div class="mn-file-s" id="mn-pf-file-s">Carga el Excel del portafolio una vez y quedará guardado aquí.</div>
+                <div class="mn-file-t" id="mn-pf-t">Sin archivo en este equipo</div>
+                <div class="mn-file-s" id="mn-pf-s">Carga el Excel del portafolio una vez y quedará guardado aquí.</div>
               </div>
-              <button class="mn-btn soft" id="mn-pf-load" onclick="document.getElementById('splash-file').click()"><i class="ti ti-upload"></i> <span>Cargar Excel</span></button>
-              <button class="mn-btn primary" id="mn-pf-open" onclick="abrirPortafolio()" style="display:none"><i class="ti ti-arrow-right"></i> Abrir dashboard</button>
+              <button class="btn btn-soft" data-action="pick-file"><i class="ti ti-upload"></i> <span id="mn-pf-load-t">Cargar Excel</span></button>
+              <button class="btn btn-good" data-action="open-portfolio" id="mn-pf-open" hidden><i class="ti ti-arrow-right"></i> Abrir dashboard</button>
             </div>
           </div>
 
-          <!-- Paramétrico -->
           <div class="mn-tool">
-            <div class="mn-tool-row" onclick="location.href='parametrico.html'">
-              <div class="mn-ico p"><i class="ti ti-calculator"></i></div>
-              <div class="mn-tool-txt">
-                <div class="mn-tool-name">Paramétrico TI</div>
-                <div class="mn-tool-desc">Estima equipamiento, infraestructura y presupuesto para expansiones</div>
-              </div>
-              <span class="mn-badge p">Nuevo</span>
+            <a class="mn-tool-row" href="parametrico.html" style="text-decoration:none;color:inherit">
+              <span class="mn-ico p"><i class="ti ti-calculator"></i></span>
+              <span class="mn-tool-txt">
+                <span class="mn-tool-name">Paramétrico TI</span>
+                <span class="mn-tool-desc" style="display:block">Estima equipamiento, infraestructura y presupuesto para expansiones</span>
+              </span>
+              <span class="pill pill-p">Nuevo</span>
               <i class="ti ti-chevron-right mn-arr"></i>
-            </div>
+            </a>
           </div>
 
-          <!-- CAPEX -->
           <div class="mn-tool">
-            <div class="mn-tool-row" onclick="irAPerfiles('capex')">
-              <div class="mn-ico g"><i class="ti ti-report-money"></i></div>
-              <div class="mn-tool-txt">
-                <div class="mn-tool-name">CAPEX 2027 — RPPs</div>
-                <div class="mn-tool-desc">Solicitudes de presupuesto por project manager</div>
-              </div>
-              <span class="mn-badge g">RPPs</span>
+            <button class="mn-tool-row" data-action="capex">
+              <span class="mn-ico g"><i class="ti ti-report-money"></i></span>
+              <span class="mn-tool-txt">
+                <span class="mn-tool-name">CAPEX 2027 — RPPs</span>
+                <span class="mn-tool-desc" style="display:block">Solicitudes de presupuesto por project manager</span>
+              </span>
+              <span class="pill pill-g">RPPs</span>
               <i class="ti ti-chevron-right mn-arr"></i>
-            </div>
+            </button>
           </div>
         </div>
 
-        <div class="mn-foot"><i class="ti ti-shield-lock"></i> Acceso restringido a personal autorizado de CHRISTUS MUGUERZA</div>
+        <div class="mn-foot"><i class="ti ti-shield-lock"></i> Acceso restringido a personal autorizado. Los datos se procesan solo en este equipo.</div>
       </div>
 
       <!-- Paso 2: perfiles (CAPEX) -->
-      <div class="mn-step out-r" id="mn-step-users">
+      <div class="mn-step is-off-right" id="mn-step-users" aria-hidden="true">
         <div class="mn-top">
-          <button class="mn-ghost" onclick="volverHerramientas()"><i class="ti ti-arrow-left"></i> Volver</button>
-          <button class="mn-ghost danger" onclick="cerrarSesion()"><i class="ti ti-logout"></i> Cerrar sesión</button>
+          <button class="btn btn-soft" data-action="back-tools"><i class="ti ti-arrow-left"></i> Volver</button>
+          <button class="btn btn-danger" data-action="logout"><i class="ti ti-logout"></i> Cerrar sesión</button>
         </div>
         <div class="mn-pick">
-          <div class="mn-ico g" style="width:40px;height:40px;font-size:18px"><i class="ti ti-report-money"></i></div>
+          <span class="mn-ico g" style="width:40px;height:40px;font-size:19px"><i class="ti ti-report-money"></i></span>
           <div>
             <div class="mn-tool-name" style="font-size:14px">CAPEX 2027 — RPPs</div>
             <div class="mn-tool-desc">Selecciona tu perfil para continuar</div>
@@ -215,135 +113,55 @@
         <h1 class="mn-h1" style="font-size:24px">¿Quién accede?</h1>
         <p class="mn-p">Tu perfil se registra en la sesión activa.</p>
         <div class="mn-users">
-          <div class="mn-user" onclick="entrarComo('alexia')"><div class="mn-av" style="background:#803F85">AC</div><div><div class="mn-user-n">Alexia C.</div><div class="mn-user-r">PM · Proyectos</div></div></div>
-          <div class="mn-user" onclick="entrarComo('alexis')"><div class="mn-av" style="background:#2563EB">AL</div><div><div class="mn-user-n">Alexis L.</div><div class="mn-user-r">PM · Proyectos</div></div></div>
-          <div class="mn-user" onclick="entrarComo('zaira')"><div class="mn-av" style="background:#1A9E6A">ZF</div><div><div class="mn-user-n">Zaira F.</div><div class="mn-user-r">PM · Proyectos</div></div></div>
-          <div class="mn-user" onclick="entrarComo('cynthia')"><div class="mn-av" style="background:#0EA5A4">CM</div><div><div class="mn-user-n">Cynthia M.</div><div class="mn-user-r">PM · Proyectos</div></div></div>
-          <div class="mn-user" onclick="entrarComo('staffgsee')"><div class="mn-av" style="background:#0F766E">SG</div><div><div class="mn-user-n">Staff GSEE</div><div class="mn-user-r">Proyectos estratégicos</div></div></div>
-          <div class="mn-user" onclick="entrarComo('general')"><div class="mn-av" style="background:#374151;font-size:10px">ALL</div><div><div class="mn-user-n">General</div><div class="mn-user-r">Todos los PMs</div></div></div>
+          <button class="mn-user" data-action="profile" data-user="alexia"><span class="mn-av" style="background:#2366b8">AC</span><span class="mn-user-n">Alexia C.</span><span class="mn-user-r">PM · Proyectos</span></button>
+          <button class="mn-user" data-action="profile" data-user="alexis"><span class="mn-av" style="background:#c4501c">AL</span><span class="mn-user-n">Alexis L.</span><span class="mn-user-r">PM · Proyectos</span></button>
+          <button class="mn-user" data-action="profile" data-user="zaira"><span class="mn-av" style="background:#13805a">ZF</span><span class="mn-user-n">Zaira F.</span><span class="mn-user-r">PM · Proyectos</span></button>
+          <button class="mn-user" data-action="profile" data-user="cynthia"><span class="mn-av" style="background:#9a6600">CM</span><span class="mn-user-n">Cynthia M.</span><span class="mn-user-r">PM · Proyectos</span></button>
+          <button class="mn-user" data-action="profile" data-user="staffgsee"><span class="mn-av" style="background:#5C2B60">SG</span><span class="mn-user-n">Staff GSEE</span><span class="mn-user-r">Proyectos estratégicos</span></button>
+          <button class="mn-user" data-action="profile" data-user="general"><span class="mn-av" style="background:#374151;font-size:10px">ALL</span><span class="mn-user-n">General</span><span class="mn-user-r">Todos los PMs</span></button>
         </div>
       </div>
-
     </section>
   </div>
-  <input type="file" id="splash-file" accept=".xlsx,.xls" onchange="App.loadFile(event)" style="display:none">
 </div>
 
 <!-- ═══════════ DASHBOARD ═══════════ -->
 <div class="app-top">
   <header class="hdr">
     <div class="hdr-left">
-      <img src="logo.jpg" alt="CHRISTUS MUGUERZA" class="hdr-logo" onerror="this.style.display='none'">
-      <div class="hdr-sep"></div>
-      <div>
+      <div class="hdr-logo-box"><img src="logo.jpg" alt="CHRISTUS MUGUERZA" class="hdr-logo" data-fallback=""></div>
+      <div class="hdr-text">
+        <div class="hdr-eyebrow">GSEE · Proyectos TI</div>
         <div class="hdr-title">Portafolio Expansión TI 2026</div>
-        <div class="hdr-sub">Dirección de TI · Dashboard de seguimiento</div>
       </div>
     </div>
     <div class="hdr-right">
-      <div id="cache-indicator" class="hdr-file" style="display:none"></div>
-      <span id="last-update" class="hdr-meta"></span>
-      <span id="next-update" class="hdr-meta" style="display:none"></span>
-      <button class="hdr-btn" onclick="document.getElementById('file-input').click()" title="Cargar o reemplazar el archivo Excel">
-        <i class="ti ti-upload"></i><span>Cargar Excel</span>
-      </button>
-      <button class="hdr-btn icon" id="btn-clear-cache" onclick="App.clearCache()" title="Quitar archivo guardado" style="display:none">
-        <i class="ti ti-trash"></i>
-      </button>
-      <div class="hdr-sep"></div>
-      <button class="hdr-btn" onclick="volverMenu()" title="Regresar al menú principal">
-        <i class="ti ti-apps"></i><span>Menú</span>
-      </button>
-      <button class="hdr-btn icon danger" onclick="cerrarSesion()" title="Cerrar sesión">
-        <i class="ti ti-logout"></i>
-      </button>
-      <input type="file" id="file-input" accept=".xlsx,.xls" onchange="App.loadFile(event)" style="display:none">
+      <div class="hdr-file" id="hdr-file" hidden title="Archivo guardado en este equipo">
+        <span class="hdr-file-ico"><i class="ti ti-file-check"></i></span>
+        <span class="hdr-file-txt">
+          <span class="hdr-file-name" id="hdr-file-name"></span>
+          <span class="hdr-file-date" id="hdr-file-date"></span>
+        </span>
+      </div>
+      <div class="hgroup">
+        <button class="hbtn" data-action="pick-file" title="Cargar o reemplazar el archivo Excel"><i class="ti ti-upload"></i><span>Cargar Excel</span></button>
+        <button class="hbtn icon danger" data-action="clear-cache" id="btn-clear" title="Quitar el archivo guardado en este equipo" hidden><i class="ti ti-trash"></i></button>
+      </div>
+      <div class="hgroup">
+        <button class="hbtn" data-action="menu" title="Regresar al menú principal"><i class="ti ti-apps"></i><span>Menú</span></button>
+        <button class="hbtn icon danger" data-action="logout" title="Cerrar sesión"><i class="ti ti-logout"></i></button>
+      </div>
     </div>
   </header>
-  <nav class="tabs" id="tabs"></nav>
+  <nav class="tabs" id="tabs" role="tablist" aria-label="Vistas del portafolio"></nav>
 </div>
 
 <main class="main" id="main"></main>
 
-<script>
-const _hasCache = () => !!localStorage.getItem('cm_excel_meta');
+<div class="drawer-bg" data-action="close-drawer"></div>
+<aside class="drawer" id="drawer" role="dialog" aria-modal="true" aria-labelledby="drawer-title" aria-hidden="true"></aside>
+<div class="toasts" id="toasts" aria-live="polite"></div>
+<input type="file" id="file-input" accept=".xlsx,.xlsm,.xls" hidden>
 
-function fmtFecha(ts) {
-  const d = new Date(ts);
-  return d.toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'}) + ' · ' +
-         d.toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'});
-}
-
-function refrescarMenu() {
-  const meta = JSON.parse(localStorage.getItem('cm_excel_meta') || 'null');
-  const box   = document.getElementById('mn-pf-file');
-  const badge = document.getElementById('mn-pf-badge');
-  const load  = document.getElementById('mn-pf-load');
-  const open  = document.getElementById('mn-pf-open');
-  if (meta) {
-    box.className = 'mn-file has';
-    document.getElementById('mn-pf-file-ico').className = 'ti ti-database-check';
-    document.getElementById('mn-pf-file-t').textContent = 'Archivo guardado en este equipo';
-    document.getElementById('mn-pf-file-s').textContent = meta.name + ' · ' + fmtFecha(meta.ts);
-    load.querySelector('span').textContent = 'Reemplazar';
-    open.style.display = 'inline-flex';
-    badge.textContent = 'Listo'; badge.className = 'mn-badge g';
-  } else {
-    box.className = 'mn-file none';
-    document.getElementById('mn-pf-file-ico').className = 'ti ti-file-spreadsheet';
-    document.getElementById('mn-pf-file-t').textContent = 'Sin archivo en este equipo';
-    document.getElementById('mn-pf-file-s').textContent = 'Carga el Excel del portafolio una vez y quedará guardado aquí.';
-    load.querySelector('span').textContent = 'Cargar Excel';
-    open.style.display = 'none';
-    badge.textContent = 'Activo'; badge.className = 'mn-badge p';
-  }
-}
-
-function ocultarMenu() {
-  const m = document.getElementById('splash');
-  m.classList.add('hide');
-  setTimeout(() => { if (m.classList.contains('hide')) m.style.display = 'none'; }, 350);
-}
-
-function volverMenu() {
-  volverHerramientas();
-  refrescarMenu();
-  const m = document.getElementById('splash');
-  m.style.display = 'flex';
-  requestAnimationFrame(() => m.classList.remove('hide'));
-}
-
-async function abrirPortafolio() {
-  if (!_hasCache()) { document.getElementById('splash-file').click(); return; }
-  if (!ALL.length) await App.tryLoadCache();
-  ocultarMenu();
-}
-
-function irAPerfiles() {
-  document.getElementById('mn-step-tools').classList.add('out');
-  document.getElementById('mn-step-users').classList.remove('out-r');
-}
-
-function volverHerramientas() {
-  document.getElementById('mn-step-users').classList.add('out-r');
-  document.getElementById('mn-step-tools').classList.remove('out');
-}
-
-function entrarComo(usuario) {
-  sessionStorage.setItem('gsee_usuario', usuario);
-  location.href = "rpps/Dashboard - Rpp's.html";
-}
-
-function cerrarSesion() {
-  if (typeof window.cmLogout === 'function') window.cmLogout();
-  else { localStorage.removeItem('cm_auth_ts'); location.reload(); }
-}
-
-// Al cerrar sesión, el usuario regresa al menú después de volver a entrar
-window.onCmLogout = volverMenu;
-
-refrescarMenu();
-</script>
-<script src="scripts.js"></script>
 </body>
 </html>

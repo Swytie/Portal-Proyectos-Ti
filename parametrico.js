@@ -1052,7 +1052,7 @@ function cargarDummy() {
   setVal('campo-tipo',     'Expansión de servicios existentes');
   setVal('campo-tipo-parametrico', 'Paramétrico de planeación');
   setVal('campo-version',  'v1.0');
-  setVal('campo-lider',    'Dirección de TI CHRISTUS MUGUERZA');
+  setVal('campo-lider',    'GSEE Proyectos TI · CHRISTUS MUGUERZA');
   setVal('campo-responsable-ti', 'Jorge Guerrero');
   dpSetValue('campo-inicio',   '2026-09-01');
   setVal('campo-alcance',  'Expansión del área de Urgencias (piso 2), apertura de piso 6 de Hospitalización, nueva farmacia satélite en planta baja, módulo de Imagenología y adecuación de oficinas administrativas. Proyecto aprobado por Comité de TI en sesión agosto 2026.');

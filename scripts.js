@@ -1,1294 +1,1436 @@
-const PM_SHEETS = ['Alexia C','Alexis L','Zaira F','Cynthia M','Alejandra R'];
-// Permite que la pestaña del Excel tenga el nombre completo o solo las iniciales (ej. "A C" en vez de "Alexia C").
-const PM_ALIASES = {
-  'Alexia C':   ['Alexia C','A C'],
-  'Alexis L':   ['Alexis L','A L'],
-  'Zaira F':    ['Zaira F','Z F'],
-  'Cynthia M':  ['Cynthia M','C M'],
-  'Alejandra R':['Alejandra R','A R'],
-};
-const PM_COLORS = ['#B07CC6','#2563EB','#1A9E6A','#C8A200','#D94040'];
-const STATUS_COLORS = {
-  'Ejecución':'#2563EB','Activo':'#1A9E6A','Planeación':'#C8A200',
-  'Cierre':'#1A9E6A','En proceso de cierre':'#C8A200','Cerrado':'#1A9E6A',
-  'Cancelado':'#D94040','En aprobación':'#803F85',
-  'Inicio':'#A889AB','N/A':'#A889AB','-':'#A889AB','':'#A889AB'
-};
+'use strict';
+/* Portafolio Expansión TI · CHRISTUS MUGUERZA
+   Todo el procesamiento ocurre en el navegador: el Excel nunca sale del equipo. */
+(function () {
 
-// Texto sin mayúsculas ni acentos, para comparar valores que los PMs pueden escribir distinto
-// (ej. "APROBADO" / "Aprobado" / "aprobado" / "Aprobación" con o sin acento) sin perder el texto original para mostrar.
-const foldText = s => String(s||'').trim().toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu,'');
-const stripNumPrefix = s => String(s||'').replace(/^(\d+|N\/A)\s*/i,'').trim();
-const includesFold = (haystack, needle) => foldText(haystack).includes(foldText(needle));
-const foldEq = (a,b) => foldText(a) === foldText(b);
-const foldEquals = (a,b) => foldText(stripNumPrefix(a)) === foldText(stripNumPrefix(b));
-// Quita valores "duplicados" que solo difieren en mayúsculas/acentos, conservando la primera forma de escritura.
-const uniqueFold = arr => {
-  const seen = new Set();
-  const out = [];
-  arr.forEach(v => {
-    const f = foldText(v);
-    if (!seen.has(f)) { seen.add(f); out.push(v); }
-  });
-  return out;
+// ═══════════════════════════ CONFIGURACIÓN ═══════════════════════════
+const PM_CONFIG = [
+  { name: 'Alexia C',    aliases: ['Alexia C', 'A C'],    role: 'Project Manager' },
+  { name: 'Alexis L',    aliases: ['Alexis L', 'A L'],    role: 'Project Manager' },
+  { name: 'Zaira F',     aliases: ['Zaira F', 'Z F'],     role: 'Project Manager' },
+  { name: 'Cynthia M',   aliases: ['Cynthia M', 'C M'],   role: 'Project Manager' },
+  { name: 'Alejandra R', aliases: ['Alejandra R', 'A R'], role: 'Jefe de Proyectos de Unidades y Expansión', fullName: 'Alejandra Rojas' },
+];
+const pmInfo = pm => PM_CONFIG.find(p => p.name === pm) || { name: pm, role: 'Project Manager' };
+// Paleta categórica validada (orden fijo; el color sigue al PM, nunca a su posición en un ranking)
+const SERIES = ['#2a78d6', '#eb6834', '#1baf7a', '#eda100', '#e87ba4', '#008300', '#6250d6', '#e34948'];
+const C = {
+  brand700: '#5C2B60', brand600: '#803F85', brand500: '#9E5EA3', brand300: '#C9A3CC',
+  ink2: '#5B4A5D', ink3: '#85748A', grid: '#EFE8F0', plan: '#CFC6D1',
 };
-const orderIndexOf = (value, orderList) => {
-  const target = foldText(stripNumPrefix(value));
-  const idx = orderList.findIndex(item => foldText(stripNumPrefix(item)) === target);
-  return idx === -1 ? 999 : idx;
+const SHEET_RULES = [
+  { re: /^consolidado/i,      reason: 'Consolidado histórico: repite los proyectos de las hojas de PM' },
+  { re: /^expansi[oó]n$/i,    reason: 'Consolidado de la gerencia: repite los proyectos de las hojas de PM' },
+  { re: /^infraestructura$/i, reason: 'Portafolio de otra gerencia (fuera de Expansión TI)' },
+  { re: /macti/i,             reason: 'Checklist MACTI (se usa para el indicador de cumplimiento)' },
+];
+const COLS = {
+  tipo:        ['tipo de esfuerzo'],
+  rrpp:        ['rrpp', 'rpp'],
+  id:          ['# proyecto en oracle', '# proyecto'],
+  nombre:      ['nombre del proyecto'],
+  direccion:   ['direccion solicitante'],
+  tipoProy:    ['tipo de proyecto'],
+  tamano:      ['tamano del proyecto'],
+  fase:        ['fase actual del proyecto', 'fase actual', 'fase'],
+  fechaIni:    ['fecha de inicio'],
+  golive:      ['fecha go live'],
+  fechaCie:    ['fecha de cierre'],
+  unidad:      ['unidades a desplegar', 'unidad'],
+  pct:         ['% real'],
+  pctPlan:     ['% planeado'],
+  monto:       ['monto aprobado ti', 'monto ti'],
+  erogado:     ['presupuesto erogado'],
+  comprometido:['presupuesto comprometido'],
+  disponible:  ['presupuesto disponible'],
+  clasif:      ['clasificacion del proyecto'],
+  prioridad:   ['prioridad'],
+  estado:      ['estado', 'estatus'],
+  lider:       ['lider ti'],
+  gestor:      ['pm / gestor de proyecto asignado', 'pm / gestor'],
+  sponsor:     ['sponsor'],
+  liderProy:   ['lider de proyecto'],
+  ruta:        ['ruta critica'],
+  tipoServ:    ['tipo de servicio'],
+  core:        ['aplicativo core'],
+  desc:        ['descripcion', 'comentarios'],
+  macti:       ['% macti'],
 };
-// Agrupa por texto "normalizado" (sin mayúsculas/acentos) pero conserva la primera forma de escritura encontrada para mostrarla.
-const groupByFold = (arr, keyFn) => {
-  const map = {};
-  arr.forEach(item => {
-    const raw = keyFn(item) || 'Sin dato';
-    const fold = foldText(raw);
-    if (!map[fold]) map[fold] = {label: raw, count: 0};
-    map[fold].count++;
-  });
-  return Object.values(map);
-};
-const colorForFold = (label, colorMap, fallback) => {
-  const fold = foldText(label);
-  const key = Object.keys(colorMap).find(k => foldText(k) === fold);
-  return key ? colorMap[key] : fallback;
-};
+const ESFUERZOS = ['Proyecto', 'Backlog', 'Iniciativa', 'Cerrado', 'Cancelado', 'Sin clasificar'];
+const ESF_COLOR = { Proyecto: '#803F85', Backlog: '#C9A3CC', Iniciativa: '#9E5EA3', Cerrado: '#85748A', Cancelado: '#B9AEBB', 'Sin clasificar': '#D9CFDA' };
+const ESTADO_ORDER = ['parametrizacion', 'en aprobacion', 'iniciativa', 'inicio', 'planeacion', 'ejecucion', 'activo', 'en espera', 'on hold', 'cierre', 'en proceso de cierre', 'cerrado', 'cancelado'];
+const MAX_FILE_MB = 30;
+const IDB = { name: 'cm_portafolio', store: 'excel_cache', key: 'latest' };
+const LS_META = 'cm_excel_meta';
 
-// Orden oficial de fases y estados (ver guía de catálogo del portafolio)
-const FASE_ORDER = ['Inicio','Planeación','Ejecución','Cierre'];
-const ESTADO_ORDER = ['Parametrización','En aprobación','Iniciativa (RPP)','Inicio','Planeación','Ejecución','Cierre','En proceso de cierre','Cerrado','Cancelado','Activo'];
-const sortByOrder = (arr, orderList) => {
-  return [...arr].sort((a,b) => {
-    const ra = orderIndexOf(a, orderList);
-    const rb = orderIndexOf(b, orderList);
-    if (ra !== rb) return ra - rb;
-    return String(a).localeCompare(String(b));
-  });
-};
+// ═══════════════════════════ UTILIDADES ═══════════════════════════
+const INVISIBLE = /[​-‏‪-‮⁦-⁩﻿]/g;
+const clean = v => String(v ?? '').replace(INVISIBLE, '').replace(/\s+/g, ' ').trim();
+const cleanMulti = v => String(v ?? '').replace(INVISIBLE, '').replace(/[ \t]+/g, ' ').replace(/\n{3,}/g, '\n\n').trim();
+const fold = v => clean(v).toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '');
+const isBlank = v => ['', '-', '--', 'n/a', 'na', 'nan', 'none', 'null'].includes(fold(v));
+const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const sum = (arr, k) => arr.reduce((s, r) => s + (r[k] || 0), 0);
+const uniq = arr => [...new Set(arr)];
+const initials = name => clean(name).split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
 
-const SHAREPOINT_URL = 'https://portafolio-proxy.jorgeguerrerp90.workers.dev/';
-const AUTO_REFRESH_MS = 60 * 1000;
-
-let ALL = [], FILTERED = [], CHARTS = {};
-
-const donutCenter = {
-  id: 'donutCenter',
-  beforeDraw(chart) {
-    if (chart.config.type !== 'doughnut') return;
-    const { ctx, chartArea } = chart;
-    const total = chart.data.datasets[0].data.reduce((a, b) => a + (b || 0), 0);
-    const cx = (chartArea.left + chartArea.right) / 2;
-    const cy = (chartArea.top + chartArea.bottom) / 2;
-    ctx.save();
-    ctx.font = 'bold 20px DM Sans,sans-serif';
-    ctx.fillStyle = '#1E0F20';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(total, cx, cy);
-    ctx.restore();
+function toMoney(v) {
+  if (typeof v === 'number') return Number.isFinite(v) ? v : 0;
+  if (isBlank(v)) return 0;
+  const n = parseFloat(clean(v).replace(/[$,\s]/g, ''));
+  return Number.isFinite(n) ? n : 0;
+}
+function toPct(v) {
+  if (v === '' || v == null) return null;
+  if (typeof v === 'number') return Number.isFinite(v) ? (v > 1.5 ? v / 100 : v) : null;
+  if (isBlank(v)) return null;
+  const s = clean(v);
+  const n = parseFloat(s.replace(/[%,\s]/g, ''));
+  if (!Number.isFinite(n)) return null;
+  return s.includes('%') || n > 1.5 ? n / 100 : n;
+}
+const MESES = { ene: 0, jan: 0, feb: 1, mar: 2, abr: 3, apr: 3, may: 4, jun: 5, jul: 6, ago: 7, aug: 7, sep: 8, sept: 8, set: 8, oct: 9, nov: 10, dic: 11, dec: 11 };
+function dmy(d, m, y) {
+  y = +y; if (y < 100) y += 2000;
+  const dt = new Date(y, +m - 1, +d);
+  return dt.getMonth() === +m - 1 && dt.getDate() === +d ? dt : null;
+}
+function toDate(v) {
+  if (v === '' || v == null) return { date: null, text: '', kind: 'vacio' };
+  if (v instanceof Date) return { date: new Date(v.getFullYear(), v.getMonth(), v.getDate()), text: '', kind: 'fecha' };
+  if (typeof v === 'number') {
+    if (v > 20000 && v < 80000) {
+      const u = new Date(Math.round((v - 25569) * 864e5));
+      return { date: new Date(u.getUTCFullYear(), u.getUTCMonth(), u.getUTCDate()), text: '', kind: 'fecha' };
+    }
+    return { date: null, text: String(v), kind: 'texto' };
   }
-};
-
-const buildLegend = (elId, labels, colors, counts) => {
-  const el = document.getElementById(elId);
-  if (!el) return;
-  el.style.cssText += ';display:grid;grid-template-columns:1fr 1fr;gap:3px 12px;align-content:center';
-  el.innerHTML = labels.map((lbl, i) => `
-    <div style="display:flex;align-items:center;gap:5px;min-width:0">
-      <div style="width:7px;height:7px;border-radius:50%;background:${colors[i]};flex-shrink:0"></div>
-      <span style="flex:1;font-size:10px;color:var(--t2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${lbl}</span>
-      <span style="font-size:11px;font-weight:700;color:var(--t1);flex-shrink:0">${counts[i]}</span>
-    </div>`).join('');
-};
-let APP_INITIALIZED = false, CURRENT_TAB = 'general';
-let LAST_VIEW_HASH = null;
-
-// ── IndexedDB: cache del Excel (sin límite de tamaño) ───────
-const IDB_NAME    = 'cm_portafolio';
-const IDB_STORE   = 'excel_cache';
-const LS_KEY_META = 'cm_excel_meta';
-
-function openIDB() {
-  return new Promise((resolve, reject) => {
-    const req = indexedDB.open(IDB_NAME, 1);
-    req.onupgradeneeded = e => e.target.result.createObjectStore(IDB_STORE);
-    req.onsuccess = e => resolve(e.target.result);
-    req.onerror   = () => reject(req.error);
-  });
+  const text = cleanMulti(v);
+  const f = fold(text);
+  if (isBlank(f)) return { date: null, text: '', kind: 'vacio' };
+  if (f.includes('iniciativa')) return { date: null, text, kind: 'iniciativa' };
+  if (/^(tbd|tbc|por definir|pendiente|sin fecha)$/.test(f)) return { date: null, text, kind: 'tbd' };
+  let m = f.match(/^(\d{1,2})[/.\-](\d{1,2})[/.\-](\d{2,4})$/);
+  if (m) { const d = dmy(m[1], m[2], m[3]); if (d) return { date: d, text, kind: 'fecha' }; }
+  m = f.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if (m) { const d = dmy(m[3], m[2], m[1]); if (d) return { date: d, text, kind: 'fecha' }; }
+  m = f.match(/^([a-z]{3,4})\.?[\s\-/]*(\d{2}|\d{4})$/);
+  if (m && MESES[m[1]] !== undefined) {
+    let y = +m[2]; if (y < 100) y += 2000;
+    return { date: new Date(y, MESES[m[1]] + 1, 0), text, kind: 'mes' };
+  }
+  if (/^20\d{2}$/.test(f)) return { date: new Date(+f, 11, 31), text, kind: 'anio' };
+  const found = [...f.matchAll(/(\d{1,2})\/(\d{1,2})\/(\d{4})/g)].map(x => dmy(x[1], x[2], x[3])).filter(Boolean);
+  if (found.length) return { date: new Date(Math.max(...found)), text, kind: 'multiple' };
+  return { date: null, text, kind: 'texto' };
 }
 
-async function saveExcelCache(buffer, fileName) {
-  try {
-    const db  = await openIDB();
-    const tx  = db.transaction(IDB_STORE, 'readwrite');
-    tx.objectStore(IDB_STORE).put(buffer, 'latest');
-    localStorage.setItem(LS_KEY_META, JSON.stringify({ name: fileName, ts: Date.now() }));
-  } catch(e) { console.warn('No se pudo guardar en caché:', e); }
+function esfuerzoDe(raw) {
+  const f = fold(raw);
+  if (!f) return 'Sin clasificar';
+  if (f.includes('backlog')) return 'Backlog';
+  if (f.includes('cancel')) return 'Cancelado';
+  if (f.includes('cerrad') || f.includes('cierre')) return 'Cerrado';
+  if (f.includes('iniciativa')) return 'Iniciativa';
+  if (f.startsWith('proyecto')) return 'Proyecto';
+  return clean(raw);
 }
-
-function loadExcelCache() {
-  return new Promise(async resolve => {
-    try {
-      const meta = JSON.parse(localStorage.getItem(LS_KEY_META) || 'null');
-      if (!meta) return resolve(null);
-      const db  = await openIDB();
-      const tx  = db.transaction(IDB_STORE, 'readonly');
-      const req = tx.objectStore(IDB_STORE).get('latest');
-      req.onsuccess = () => resolve(req.result ? { buffer: req.result, meta } : null);
-      req.onerror   = () => resolve(null);
-    } catch(e) { resolve(null); }
-  });
+function tipoProyDe(raw) {
+  const f = fold(raw);
+  if (f === 'ryr' || f === 'r&r' || f === 'r y r') return 'RyR';
+  if (f.startsWith('estrat')) return 'Estratégico';
+  return isBlank(raw) ? '' : clean(raw);
 }
+const faseNum = fase => { const m = clean(fase).match(/^(\d{1,2})/); return m ? +m[1] : 99; };
+const estadoRank = e => { const i = ESTADO_ORDER.indexOf(fold(e)); return i < 0 ? 50 : i; };
+const isCierre = r => /cierr|cerrad|cancel/.test(fold(r.fase) + ' ' + fold(r.estado));
 
-async function clearExcelCache() {
-  try {
-    const db = await openIDB();
-    db.transaction(IDB_STORE, 'readwrite').objectStore(IDB_STORE).delete('latest');
-    localStorage.removeItem(LS_KEY_META);
-  } catch(e) {}
-}
+// ═══════════════════════════ PARSER (puro, sin DOM) ═══════════════════════════
+function parseWorkbook(wb, XLSXlib) {
+  const X = XLSXlib || window.XLSX;
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const records = [];
+  const sheets = [];
+  const pmOrder = [];
+  const configured = new Map();
+  PM_CONFIG.forEach(pm => pm.aliases.forEach(a => configured.set(fold(a), pm.name)));
+  const found = new Set();
 
-function updateCacheIndicator() {
-  try {
-    const meta = JSON.parse(localStorage.getItem(LS_KEY_META) || 'null');
-    const el  = document.getElementById('cache-indicator');
-    const btn = document.getElementById('btn-clear-cache');
-    if (!el) return;
-    if (meta) {
-      const d = new Date(meta.ts);
-      const ts = d.toLocaleDateString('es-MX', {day:'2-digit',month:'short'}) + ' ' + d.toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'});
-      el.innerHTML = `<i class="ti ti-database-check"></i> <span title="${meta.name}">${meta.name.length > 28 ? meta.name.slice(0,25)+'…' : meta.name}</span><span class="ci-sep">·</span>${ts}`;
-      el.style.display = 'flex';
-      if (btn) btn.style.display = 'flex';
-    } else {
-      el.style.display = 'none';
-      if (btn) btn.style.display = 'none';
-    }
-  } catch(e) {}
-}
-const hashData = arr => JSON.stringify(arr);
-const DEFAULT_SORT_COL = '_idx', DEFAULT_SORT_DIR = 1;
-let SORT_COL = DEFAULT_SORT_COL, SORT_DIR = DEFAULT_SORT_DIR, SEARCH = '';
-let TBL_FILTERS = {pm:'', tipo:'', fase:'', unidad:'', estado:''};
-let refreshTimer = null, countdownTimer = null, nextRefreshAt = null;
-let MACTI_PCT = null;
+  wb.SheetNames.forEach((sheetName, sheetIdx) => {
+    const pmName = configured.get(fold(sheetName));
+    const rule = SHEET_RULES.find(r => r.re.test(clean(sheetName)));
+    if (!pmName && rule) { sheets.push({ sheet: sheetName, status: 'ignored', reason: rule.reason, rows: 0, monto: 0 }); return; }
 
-const $ = id => document.getElementById(id);
-const pmColor = pm => PM_COLORS[PM_SHEETS.indexOf(pm)] || '#803F85';
-
-const fmt = v => {
-  if (!v || isNaN(v)) return '—';
-  if (v >= 1e6) return '$' + (v/1e6).toFixed(1) + 'M';
-  if (v >= 1000) return '$' + (v/1000).toFixed(0) + 'K';
-  return '$' + Math.round(v).toLocaleString('es-MX');
-};
-const pct = v => Math.round((v||0)*100) + '%';
-const toNum = v => {
-  if (v === null || v === undefined || v === '') return 0;
-  const n = parseFloat(String(v).replace(/[,$\s%]/g,''));
-  return isNaN(n) ? 0 : n;
-};
-const normalizeTipoProy = v => {
-  const s = String(v||'').normalize('NFC').trim();
-  if (/^ryr$/i.test(s)) return 'RyR';
-  if (/^estrat[eé]gico$/i.test(s)) return 'Estratégico';
-  return s;
-};
-const badgeClass = e => {
-  const s = foldText(e);
-  if (s.includes('ejec')) return 'b-ejec';
-  if (s.includes('plan')) return 'b-plan';
-  if (s.includes('cierr')||s.includes('cerr')) return 'b-cierre';
-  if (s.includes('cancel')) return 'b-cancel';
-  if (s.includes('apro')||s.includes('inicio')) return 'b-apro';
-  return 'b-other';
-};
-const desvClass = v => v > 0 ? 'desv-ok' : v < -0.1 ? 'desv-neg' : v < 0 ? 'desv-pos' : 'desv-ok';
-const desvStr = v => {
-  if (!v && v !== 0) return '—';
-  const p = Math.round(v * 100);
-  return (p > 0 ? '+' : '') + p + '%';
-};
-const excelDateToJS = v => new Date(Math.round((Number(v) - 25569) * 86400 * 1000) + new Date().getTimezoneOffset() * 60 * 1000);
-const isGoLiveOverdue = d => {
-  const v = d._fecha_golive;
-  if (!v || v === '' || v === 'nan' || v === '-') return false;
-  const s = String(v);
-  if (includesFold(s,'INICIATIVA') || includesFold(s,'TBD')) return false;
-  let date;
-  if (!isNaN(v) && Number(v) > 1000) date = excelDateToJS(v);
-  else { date = new Date(v); if (isNaN(date.getTime())) return false; }
-  const today = new Date(); today.setHours(0,0,0,0);
-  if (date >= today) return false;
-  if (includesFold(d._estado,'cancel')) return false;
-  return !includesFold(d._fase,'cierr') && !includesFold(d._fase,'cerr');
-};
-
-const App = {
-
-  splashConnect() {
-    App.sharePointDisabledNotice();
-  },
-
-  sharePointDisabledNotice() {
-    alert('La conexión automática a SharePoint no está disponible por el momento. Usa "Cargar archivo Excel" para subir el archivo manualmente.');
-  },
-
-  splashManual() {
-    document.getElementById('splash-file').click();
-  },
-
-  splashFile(event) {
-    const file = event.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = e => {
-      App.parseExcel(e.target.result);
-      $('last-update').textContent = 'Cargado: ' + new Date().toLocaleTimeString('es-MX');
-      sessionStorage.setItem('gsee_dashboard_active', '1');
-      const splash = document.getElementById('splash');
-      splash.classList.add('hide');
-      setTimeout(() => { splash.style.display = 'none'; }, 500);
-    };
-    reader.readAsArrayBuffer(file);
-  },
-
-  connectSharePoint() {
-    App.sharePointDisabledNotice();
-  },
-
-  clearCache() {
-    if (!confirm('¿Limpiar el archivo guardado? Tendrás que cargarlo de nuevo.')) return;
-    localStorage.removeItem(LS_KEY_META);
-    clearExcelCache();
-    updateCacheIndicator();
-    App.destroyCharts();
-    ALL = []; FILTERED = [];
-    APP_INITIALIZED = false;
-    App.renderEmpty();
-    if (typeof refrescarMenu === 'function') refrescarMenu();
-  },
-
-  scheduleRefresh() {
-    if (refreshTimer) clearInterval(refreshTimer);
-    nextRefreshAt = Date.now() + AUTO_REFRESH_MS;
-    refreshTimer = setInterval(() => {
-      nextRefreshAt = Date.now() + AUTO_REFRESH_MS;
-      App.fetchSharePoint();
-    }, AUTO_REFRESH_MS);
-    App.startCountdown();
-  },
-
-  startCountdown() {
-    if (countdownTimer) clearInterval(countdownTimer);
-    const tick = () => {
-      const el = $('next-update');
-      if (!el || !nextRefreshAt) return;
-      const diff = Math.max(0, nextRefreshAt - Date.now());
-      const m = Math.floor(diff / 60000);
-      const s = Math.floor((diff % 60000) / 1000);
-      el.textContent = `Próxima sync en ${m}:${String(s).padStart(2,'0')}`;
-    };
-    tick();
-    countdownTimer = setInterval(tick, 1000);
-  },
-
-  async fetchSharePoint() {
-    try {
-      const res = await fetch(`${SHAREPOINT_URL}?t=${Date.now()}`, {cache:'no-store'});
-      if (!res.ok) throw new Error(res.status);
-      const buffer = await res.arrayBuffer();
-      App.parseExcel(buffer);
-      $('last-update').textContent = 'Actualizado: ' + new Date().toLocaleTimeString('es-MX');
-      const splash = document.getElementById('splash');
-      if (splash) { splash.classList.add('hide'); setTimeout(()=>{ splash.style.display='none'; },500); }
-      return true;
-    } catch(e) {
-      console.error('SharePoint error:', e);
-      alert('No se pudo conectar a SharePoint/OneDrive. Verifica que el vínculo siga siendo válido y que el archivo esté compartido como "Cualquier persona con el vínculo".');
-      return false;
-    }
-  },
-
-  loadFile(event) {
-    const file = event.target.files[0];
-    event.target.value = '';
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = async e => {
-      const buffer = e.target.result;
-      App.parseExcel(buffer);
-      await saveExcelCache(buffer, file.name);
-      updateCacheIndicator();
-      if (typeof refrescarMenu === 'function') refrescarMenu();
-      if (typeof ocultarMenu === 'function') ocultarMenu();
-    };
-    reader.readAsArrayBuffer(file);
-  },
-
-  async tryLoadCache() {
-    const cached = await loadExcelCache();
-    if (!cached) return false;
-    App.parseExcel(cached.buffer);
-    updateCacheIndicator();
-    return true;
-  },
-
-  secHead(num, title, sub) {
-    return `<div class="dsec-hd"><span class="dsec-num">${num}</span><div><div class="dsec-title">${title}</div><div class="dsec-sub">${sub}</div></div></div>`;
-  },
-
-  goSec(id) {
-    const el = document.getElementById(id);
-    if (el) el.scrollIntoView({behavior:'smooth', block:'start'});
-  },
-
-  renderEmpty() {
-    $('tabs').innerHTML = '';
-    $('main').innerHTML = `
-      <div class="empty-card">
-        <div class="empty-card-ico"><i class="ti ti-file-spreadsheet"></i></div>
-        <div class="empty-card-title">Aún no hay un portafolio cargado</div>
-        <div class="empty-card-sub">Carga el archivo Excel del Portafolio Expansión TI. Quedará guardado en este equipo y se abrirá automáticamente la próxima vez.</div>
-        <button class="btn-primary btn-lg" onclick="document.getElementById('file-input').click()"><i class="ti ti-upload"></i> Cargar archivo Excel</button>
-        <div class="empty-card-note"><i class="ti ti-lock"></i> El archivo no sale de tu equipo: se procesa y guarda solo en este navegador.</div>
-      </div>`;
-  },
-
-  parseMACTI(wb) {
-  if (!wb.SheetNames.includes('MACTI Checklist')) return;
-  const raw = XLSX.utils.sheet_to_json(wb.Sheets['MACTI Checklist'], {header:1, defval:''});
-  let totalReq = 0, totalSub = 0;
-  window._mactiMap = {};
-  const clean = v => String(v||'').replace(/[\u202a\u202b\u202c\u202d\u202e\u200b\u200c\u200d\ufeff]/g,'').trim();
-  for (let i = 3; i < raw.length; i++) {
-    const row = raw[i];
-    const id     = clean(row[2]);
-    const nombre = clean(row[3]).toLowerCase();
-    const req    = typeof row[10] === 'number' ? row[10] : 0;
-    const sub    = typeof row[11] === 'number' ? row[11] : 0;
-    if (req > 0) { totalReq += req; totalSub += sub; }
-    if (req > 0) {
-      const val = Math.round((sub / req) * 10000) / 100;
-      if (id && id !== '' && id !== 'None' && id !== '-') window._mactiMap[id] = val;
-      if (nombre) window._mactiMap[nombre] = val;
-    }
-  }
-  MACTI_PCT = totalReq > 0 ? Math.round((totalSub / totalReq) * 10000) / 100 : null;
-},
-
-
-  parseExcel(buffer) {
-  const wb = XLSX.read(buffer, {type:'array'});
-  ALL = [];
-  App.parseMACTI(wb);
-  PM_SHEETS.forEach(pmName => {
-    const sheet = (PM_ALIASES[pmName] || [pmName]).find(alias => wb.SheetNames.includes(alias));
-    if (!sheet) return;
-    const raw = XLSX.utils.sheet_to_json(wb.Sheets[sheet], {header:1, defval:''});
-    let hdr = -1;
-    for (let i = 0; i < raw.length; i++) {
-      if (raw[i].some(c => includesFold(c,'Tipo de') || includesFold(c,'Nombre del') || includesFold(c,'Esfuerzo'))) { hdr = i; break; }
-    }
-    if (hdr < 0) return;
-    const hdrs = raw[hdr];
-    const SKIP = ['Gerencia TI','Gerencia Expansión TI','Información general','Tipo de Esfuerzo','Tipo de esfuerzo'];
-    const isAlejandra = pmName === 'Alejandra R';
-    const tipoCol = isAlejandra ? 1 : 0;
-    const cleanStr = v => String(v||'').replace(/[\u202a\u202b\u202c\u202d\u202e\u200b\u200c\u200d\ufeff]/g,'').trim();
-    for (let i = hdr+1; i < raw.length; i++) {
-      const row = raw[i];
-      const tipo = String(row[tipoCol]||'').trim();
-      if (tipo === 'nan' || SKIP.some(s => foldText(s) === foldText(tipo))) continue;
-      if (!tipo) {
-        const tipoPrIdx = hdrs.findIndex(h => includesFold(h,'Tipo de Proyecto'));
-        const rawTipoProy = String(row[tipoPrIdx]||'').normalize('NFC').trim();
-        if (!/^(ryr|estrat[eé]gico)$/i.test(rawTipoProy)) continue;
-      }
-      const obj = {pm: pmName, tipo};
-      hdrs.forEach((h,idx) => { obj[String(h).trim()] = row[idx] ?? ''; });
-      const find = (...keys) => {
-        for (const k of keys) {
-          const h = hdrs.find(h => includesFold(h, k));
-          if (h !== undefined) return obj[String(h).trim()];
-        }
-        return '';
-      };
-      obj._nombre       = cleanStr(find('Nombre del proyecto','Nombre de proyecto'));
-      obj._unidad       = cleanStr(find('Unidades a desplegar','Unidad'));
-      obj._fase         = cleanStr(find('Fase actual','Fase'));
-      obj._estado       = cleanStr(find('Estado','Estatus'));
-      obj._tipo_proy    = normalizeTipoProy(cleanStr(find('Tipo de Proyecto','Tipo de proyecto')));
-      obj._pct          = toNum(find('% real','% Real','%Real'));
-      obj._pct_plan     = toNum(find('% planeado','% Planeado'));
-      obj._desviacion   = obj._pct - obj._pct_plan;
-      obj._monto        = toNum(find('Monto Aprobado TI','Monto TI','Monto aprobado TI'));
-      obj._erogado      = toNum(find('Presupuesto erogado'));
-      obj._comprometido = toNum(find('Presupuesto Comprometido','Presupuesto comprometido'));
-      obj._disponible   = toNum(find('Presupuesto Disponible','Presupuesto disponible'));
-      obj._rrpp         = cleanStr(find('RRPP'));
-      obj._id           = cleanStr(find('# Proyecto en Oracle','# Proyecto','# proyecto en Oracle'));
-      obj._direccion    = cleanStr(find('Dirección solicitante','Dirección'));
-      obj._lider        = cleanStr(find('Lider TI','Líder TI'));
-      obj._fecha_ini    = find('Fecha de inicio');
-      obj._fecha_cie    = find('Fecha de cierre');
-      obj._fecha_golive = find('Fecha Go Live');
-      obj._comentarios  = cleanStr(find('Descripción','Comentarios'));
-      obj._sponsor      = cleanStr(find('Sponsor'));
-      obj._pm_gestor    = cleanStr(find('PM / Gestor','PM/Gestor'));
-      obj._ruta_critica = cleanStr(find('Ruta Crítica','RUTA CRÍTICA'));
-      obj._tipo_servicio= cleanStr(find('Tipo de Servicio'));
-      obj._es_iniciativa = includesFold(obj._fecha_golive,'INICIATIVA');
-      obj._tiene_rrpp    = obj._rrpp && obj._rrpp !== '-' && obj._rrpp !== '' && obj._rrpp !== 'nan';
-      const cleanId     = obj._id && obj._id !== '-' && obj._id !== '' && obj._id !== 'nan' ? obj._id : null;
-      const cleanNombre = obj._nombre.toLowerCase();
-      const mactiKey    = cleanId || cleanNombre;
-      obj._macti = (window._mactiMap && mactiKey && window._mactiMap[mactiKey] !== undefined)
-        ? window._mactiMap[mactiKey]
-        : null;
-      if (obj._nombre && obj._nombre !== 'nan') { obj._idx = ALL.length; ALL.push(obj); }
-    }
-  });
-  App.buildTabs();
-  if (!APP_INITIALIZED) {
-    APP_INITIALIZED = true;
-    App.showTab('general');
-  } else {
-    App.refreshCurrentView();
-  }
-},
-
-  refreshCurrentView() {
-    const relevant = CURRENT_TAB === 'general' ? ALL : ALL.filter(d=>d.pm===CURRENT_TAB);
-    const hash = hashData(relevant);
-    if (hash === LAST_VIEW_HASH) return;
-    LAST_VIEW_HASH = hash;
-    if (CURRENT_TAB === 'general') {
-      if (!$('f-pm')) { App.showTab('general'); return; }
-      const pmSel = $('f-pm').value, unidadSel = $('f-unidad').value, tipoProySel = $('f-tipo-proy').value;
-      const pms = [...new Set(ALL.map(d=>d.pm))];
-      const unidades = uniqueFold(ALL.map(d=>d._unidad).filter(Boolean)).sort();
-      const tipoProy = uniqueFold(ALL.map(d=>d._tipo_proy).filter(Boolean)).sort();
-      $('f-pm').innerHTML = '<option value="">Todos los PMs</option>' + pms.map(p=>`<option ${p===pmSel?'selected':''}>${p}</option>`).join('');
-      $('f-unidad').innerHTML = '<option value="">Todas las unidades</option>' + unidades.map(u=>`<option ${u===unidadSel?'selected':''}>${u}</option>`).join('');
-      $('f-tipo-proy').innerHTML = '<option value="">Todas las categorías</option>' + tipoProy.map(t=>`<option ${t===tipoProySel?'selected':''}>${t}</option>`).join('');
-      App.filterGeneral();
-    } else if (ALL.some(d=>d.pm===CURRENT_TAB)) {
-      App.destroyCharts();
-      App.renderPM(CURRENT_TAB);
-    } else {
-      App.showTab('general');
-    }
-  },
-
-  buildTabs() {
-    const pms = [...new Set(ALL.map(d => d.pm))];
-    $('tabs').innerHTML = `
-      <div class="tab active" onclick="App.showTab('general')" id="tab-general">
-        <i class="ti ti-layout-dashboard"></i> Vista General
-      </div>
-      ${pms.map(pm => {
-        const color = pmColor(pm);
-        return `
-          <div class="tab" onclick="App.showTab('${pm}')" id="tab-${pm.replace(/ /g,'_')}">
-            <span style="width:22px;height:22px;border-radius:50%;background:${color};color:#fff;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0">
-              <i class="ti ti-user" style="font-size:12px"></i>
-            </span>
-            ${pm}
-          </div>`;
-      }).join('')}
-    `;
-  },
-
-  showTab(tab) {
-    CURRENT_TAB = tab;
-    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-    const tid = tab === 'general' ? 'tab-general' : 'tab-'+tab.replace(/ /g,'_');
-    if ($(tid)) $(tid).classList.add('active');
-    SEARCH = ''; SORT_COL = DEFAULT_SORT_COL; SORT_DIR = DEFAULT_SORT_DIR;
-    TBL_FILTERS = {pm:'', tipo:'', fase:'', unidad:'', estado:''};
-    App.destroyCharts();
-    tab === 'general' ? App.renderGeneral() : App.renderPM(tab);
-    LAST_VIEW_HASH = hashData(tab === 'general' ? ALL : ALL.filter(d=>d.pm===tab));
-  },
-
-  renderGeneral() {
-    const meta = JSON.parse(localStorage.getItem(LS_KEY_META) || 'null');
-    const corte = meta ? new Date(meta.ts).toLocaleDateString('es-MX',{day:'2-digit',month:'long',year:'numeric'}) : '';
-    $('main').innerHTML = `
-      <div class="dash-hero">
-        <div>
-          <div class="dash-eyebrow"><i class="ti ti-layout-dashboard"></i> Vista general</div>
-          <h1 class="dash-title">Portafolio Expansión TI 2026</h1>
-          <div class="dash-sub">${ALL.length} registros · ${[...new Set(ALL.map(d=>d.pm))].length} project managers${corte ? ' · Corte al ' + corte : ''}</div>
-        </div>
-        <nav class="dash-index">
-          <a onclick="App.goSec('sec-resumen')"><span>01</span> Resumen</a>
-          <a onclick="App.goSec('sec-inversion')"><span>02</span> Inversión</a>
-          <a onclick="App.goSec('sec-avance')"><span>03</span> Avance</a>
-          <a onclick="App.goSec('sec-detalle')"><span>04</span> Detalle</a>
-        </nav>
-      </div>
-      <div class="filterbar">
-        <span class="filter-label"><i class="ti ti-adjustments-horizontal"></i> Filtros</span>
-        <select class="fsel" id="f-pm" onchange="App.filterGeneral()"><option value="">Todos los PMs</option></select>
-        <select class="fsel" id="f-tipo" onchange="App.filterGeneral()">
-          <option value="">Todos los tipos</option><option>Proyecto</option><option>Backlog</option>
-        </select>
-        <select class="fsel" id="f-tipo-proy" onchange="App.filterGeneral()"><option value="">Todas las categorías</option></select>
-        <select class="fsel" id="f-fase" onchange="App.filterGeneral()">
-          <option value="">Todas las fases</option>
-          <option>01 Inicio</option><option>02 Planeación</option><option>03 Ejecución</option><option>05 Cierre</option>
-        </select>
-        <select class="fsel" id="f-unidad" onchange="App.filterGeneral()"><option value="">Todas las unidades</option></select>
-        <select class="fsel" id="f-estado" onchange="App.filterGeneral()">
-          <option value="">Todos los estados</option>
-          <option>Activo</option><option>Ejecución</option><option>Planeación</option>
-          <option>Cierre</option><option>Cancelado</option><option>En aprobación</option>
-        </select>
-        <button class="btn-primary" onclick="App.exportMSR()" style="margin-left:auto">
-          <i class="ti ti-file-download"></i> Exportar MSR_R
-        </button>
-      </div>
-      <section class="dsec" id="sec-resumen">
-        ${App.secHead('01','Resumen ejecutivo','Indicadores clave del portafolio con los filtros aplicados')}
-        <div class="kpi-section" id="kpis"></div>
-        <div class="status-strip" id="status-grid"></div>
-      </section>
-      <section class="dsec" id="sec-inversion">
-      ${App.secHead('02','Inversión y distribución','Monto aprobado por PM, estado de los proyectos y tipo de esfuerzo')}
-      <div class="charts-top">
-        <div class="chart-card">
-          <div class="chart-header"><i class="ti ti-chart-bar"></i><span class="chart-title">Monto Aprobado TI por PM</span><span class="chart-title-sub">MXN</span></div>
-          <div class="chart-wrap-lg"><canvas id="ch-pm"></canvas></div>
-        </div>
-        <div class="charts-right-stack">
-          <div class="chart-card">
-            <div class="chart-header"><i class="ti ti-chart-donut"></i><span class="chart-title">Por Estado</span></div>
-            <div class="chart-wrap" style="display:flex;align-items:center;gap:12px">
-              <div style="position:relative;flex-shrink:0;width:48%;height:100%"><canvas id="ch-estado"></canvas></div>
-              <div id="leg-estado" style="display:flex;flex-direction:column;gap:5px;flex:1;overflow:hidden"></div>
-            </div>
-          </div>
-          <div class="chart-card">
-            <div class="chart-header"><i class="ti ti-chart-pie"></i><span class="chart-title">Expansión vs Crecimiento</span></div>
-            <div class="chart-wrap" style="display:flex;align-items:center;gap:12px">
-              <div style="position:relative;flex-shrink:0;width:48%;height:100%"><canvas id="ch-tipo"></canvas></div>
-              <div id="leg-tipo" style="display:flex;flex-direction:column;gap:5px;flex:1;overflow:hidden"></div>
-            </div>
-          </div>
-        </div>
-      </div>
-      </section>
-      <section class="dsec" id="sec-avance">
-      ${App.secHead('03','Avance y fases','Distribución por fase y avance real contra el planeado por PM')}
-      <div class="charts-bot">
-        <div class="chart-card">
-          <div class="chart-header"><i class="ti ti-list"></i><span class="chart-title">Proyectos por Fase</span></div>
-          <div class="chart-wrap-lg"><canvas id="ch-fase"></canvas></div>
-        </div>
-        <div class="chart-card">
-          <div class="chart-header"><i class="ti ti-trending-up"></i><span class="chart-title">Avance Real vs Planeado por PM</span></div>
-          <div class="chart-wrap-lg"><canvas id="ch-avance"></canvas></div>
-        </div>
-      </div>
-      </section>
-      <section class="dsec" id="sec-detalle">
-      ${App.secHead('04','Detalle de proyectos','Busca, filtra y ordena el listado completo')}
-      <div class="table-card">
-        <div class="table-header">
-          <div class="table-header-left"><i class="ti ti-table"></i><span class="table-title">Detalle de Proyectos</span></div>
-          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-            <div class="search-box">
-              <i class="ti ti-search"></i>
-              <input type="text" id="search-input" placeholder="Buscar proyecto..." value="${SEARCH}" oninput="App.onSearch(this.value)">
-            </div>
-            <span class="table-count" id="tbl-count"></span>
-          </div>
-        </div>
-        <div class="tbl-filter-bar" id="tbl-filter-bar"></div>
-        <div class="table-scroll-top" id="tbl-scroll-top"><div class="table-scroll-top-inner" id="tbl-scroll-top-inner"></div></div>
-        <div class="table-scroll" id="tbl-scroll"><div id="tbl"></div></div>
-      </div>
-      </section>`;
-    const pms = [...new Set(ALL.map(d => d.pm))];
-    const unidades = uniqueFold(ALL.map(d => d._unidad).filter(Boolean)).sort();
-    const tipoProy = uniqueFold(ALL.map(d => d._tipo_proy).filter(Boolean)).sort();
-    $('f-pm').innerHTML = '<option value="">Todos los PMs</option>' + pms.map(p => `<option>${p}</option>`).join('');
-    $('f-unidad').innerHTML = '<option value="">Todas las unidades</option>' + unidades.map(u => `<option>${u}</option>`).join('');
-    $('f-tipo-proy').innerHTML = '<option value="">Todas las categorías</option>' + tipoProy.map(t => `<option>${t}</option>`).join('');
-    App.filterGeneral();
-  },
-
-  filterGeneral() {
-    const pm       = $('f-pm').value;
-    const tipo     = $('f-tipo').value;
-    const tipoProy = $('f-tipo-proy').value;
-    const fase     = $('f-fase').value;
-    const unidad   = $('f-unidad').value;
-    const estado = $('f-estado').value;
-    FILTERED = ALL.filter(d => {
-      if (pm       && d.pm !== pm) return false;
-      if (tipo     && !includesFold(d.tipo, tipo)) return false;
-      if (tipoProy && !foldEq(d._tipo_proy, tipoProy)) return false;
-      if (fase     && !foldEquals(d._fase, fase)) return false;
-      if (unidad   && !foldEq(d._unidad, unidad)) return false;
-      if (estado   && !foldEquals(d._estado, estado)) return false;
-      return true;
-    });
-    App.renderKPIs(FILTERED);
-    App.renderStatusGrid(FILTERED);
-    App.renderCharts(FILTERED);
-    App.renderTblFilters(FILTERED);
-    App.renderTable(App.applyTblFilters(FILTERED));
-  },
-
-  onSearch(val) {
-    SEARCH = val.toLowerCase();
-    App.renderTable(App.applyTblFilters(FILTERED));
-  },
-
-  renderTblFilters(data) {
-  const unidades = uniqueFold(data.map(d=>d._unidad).filter(Boolean)).sort();
-  const estados  = sortByOrder(uniqueFold(data.map(d=>d._estado).filter(Boolean)), ESTADO_ORDER);
-  const fases    = sortByOrder(uniqueFold(data.map(d=>d._fase).filter(Boolean)), FASE_ORDER);
-  const tipos    = uniqueFold(data.map(d=>d._tipo_proy).filter(Boolean)).sort();
-  const pms      = [...new Set(data.map(d=>d.pm).filter(Boolean))];
-  const sel = (id, opts, label) => `
-    <select class="tbl-fsel" id="tf-${id}" onchange="App.onTblFilter('${id}',this.value)">
-      <option value="">${label}</option>
-      ${opts.map(o=>`<option value="${o}" ${TBL_FILTERS[id]===o?'selected':''}>${o}</option>`).join('')}
-    </select>`;
-  const pmSel = pms.length > 1 ? sel('pm', pms, 'PM') : '';
-  const sortOptions = [
-    {v:'_idx|1',     label:'Orden original (Excel)'},
-    {v:'_nombre|1',  label:'Proyecto (A-Z)'},
-    {v:'_nombre|-1', label:'Proyecto (Z-A)'},
-    {v:'_estado|1',  label:'Estado (orden oficial)'},
-    {v:'_fase|1',    label:'Fase (orden oficial)'},
-    {v:'_fecha_golive|1', label:'Go Live (próxima primero)'},
-    {v:'_monto|-1',  label:'Monto (mayor a menor)'},
-    {v:'_pct|-1',    label:'% Avance (mayor a menor)'},
-  ];
-  const sortVal = `${SORT_COL}|${SORT_DIR}`;
-  const sortSel = `
-    <span class="tbl-fsel-label">Ordenar por:</span>
-    <select class="tbl-fsel" id="tf-sort" onchange="App.onSortSelect(this.value)">
-      ${sortOptions.map(o=>`<option value="${o.v}" ${sortVal===o.v?'selected':''}>${o.label}</option>`).join('')}
-    </select>`;
-  $('tbl-filter-bar').innerHTML = `
-    <div class="tbl-filter-inner">
-      <i class="ti ti-adjustments-horizontal" style="font-size:13px;color:var(--t3)"></i>
-      ${pmSel}
-      ${sel('tipo', tipos, 'Tipo')}
-      ${sel('fase', fases, 'Fase')}
-      ${sel('unidad', unidades, 'Unidad')}
-      ${sel('estado', estados, 'Estado')}
-      ${sortSel}
-      <button class="tbl-clear-btn" onclick="App.clearTblFilters()"><i class="ti ti-x"></i> Limpiar</button>
-    </div>`;
-},
-
-  onSortSelect(val) {
-    if (!val) return;
-    const [col, dir] = val.split('|');
-    SORT_COL = col;
-    SORT_DIR = Number(dir);
-    App.renderTable(App.applyTblFilters(FILTERED));
-  },
-
-  onTblFilter(key, val) {
-    TBL_FILTERS[key] = val;
-    App.renderTable(App.applyTblFilters(FILTERED));
-  },
-
-  clearTblFilters() {
-    TBL_FILTERS = {pm:'', tipo:'', fase:'', unidad:'', estado:''};
-    SORT_COL = DEFAULT_SORT_COL; SORT_DIR = DEFAULT_SORT_DIR;
-    App.renderTblFilters(FILTERED);
-    App.renderTable(App.applyTblFilters(FILTERED));
-  },
-
-  applyTblFilters(data) {
-    return data.filter(d => {
-      if (TBL_FILTERS.pm     && d.pm !== TBL_FILTERS.pm) return false;
-      if (TBL_FILTERS.tipo   && !foldEq(d._tipo_proy, TBL_FILTERS.tipo)) return false;
-      if (TBL_FILTERS.fase   && !foldEquals(d._fase, TBL_FILTERS.fase)) return false;
-      if (TBL_FILTERS.unidad && !foldEq(d._unidad, TBL_FILTERS.unidad)) return false;
-      if (TBL_FILTERS.estado && !foldEquals(d._estado, TBL_FILTERS.estado)) return false;
-      return true;
-    });
-  },
-
-  renderKPIs(data) {
-    const monto   = data.reduce((s,d)=>s+d._monto,0);
-    const erogado = data.reduce((s,d)=>s+d._erogado,0);
-    const disp    = data.reduce((s,d)=>s+d._disponible,0);
-    const comp    = data.reduce((s,d)=>s+d._comprometido,0);
-    const isActivo = d => d.tipo.toLowerCase() === 'proyecto';
-    const isBacklog = d => d.tipo.toLowerCase() === 'backlog';
-    const isEstrategico = d => /^estrat[eé]gico$/i.test(d._tipo_proy || '');
-    const isRyR = d => /^ryr$/i.test(d._tipo_proy || '');
-    const activos = data.filter(isActivo);
-    const backlogCount = data.filter(isBacklog).length;
-    const avg      = activos.length ? activos.reduce((s,d)=>s+d._pct,0)/activos.length : 0;
-    const avgPlan  = activos.length ? activos.reduce((s,d)=>s+d._pct_plan,0)/activos.length : 0;
-    const desvAvg  = Math.round((avg - avgPlan) * 100);
-    const desvLbl  = (desvAvg > 0 ? '+' : '') + desvAvg + ' pts';
-    const desvClr  = desvAvg >= -2 ? 'var(--green)' : desvAvg >= -10 ? 'var(--amber)' : 'var(--red)';
-    const pctE     = monto > 0 ? Math.round(erogado/monto*100) : 0;
-    const expansion     = data.filter(isEstrategico);
-    const crecimiento   = data.filter(isRyR);
-    const sinClasificar = data.filter(d => !isEstrategico(d) && !isRyR(d));
-    const expPct   = data.length ? Math.round(expansion.length/data.length*100) : 0;
-    const crePct   = data.length ? Math.round(crecimiento.length/data.length*100) : 0;
-    const mactiHtml = MACTI_PCT !== null ? `
-      <div class="kpi kpi-compact accent-green">
-        <div class="kpi-label">MACTI</div>
-        <div class="kpi-val kpi-val-sm" style="color:${MACTI_PCT>=80?'#1A9E6A':MACTI_PCT>=50?'#C8A200':'#D94040'}">${MACTI_PCT}%</div>
-        <div class="kpi-sub">Cumplimiento</div>
-        <div class="kpi-bar" style="margin-top:6px"><div class="kpi-bar-fill" style="width:${MACTI_PCT}%;background:${MACTI_PCT>=80?'#1A9E6A':MACTI_PCT>=50?'#C8A200':'#D94040'}"></div></div>
-      </div>` : '';
-    const sinClasHtml = sinClasificar.length > 0 ? `
-      <div class="kb-pill"><div class="kb-dot" style="background:var(--t4)"></div><span class="kb-num">${sinClasificar.length}</span><span class="kb-lbl">Sin clasificar</span></div>` : '';
-    $('kpis').innerHTML = `
-      <div class="kpi-section-label">Portafolio</div>
-      <div class="kpi-row-a">
-        <div class="kpi">
-          <div class="kpi-label">Total Proyectos</div>
-          <div class="kpi-val kpi-val-lg">${data.length}</div>
-          <div class="kpi-sub">${activos.length} proyecto · ${backlogCount} backlog</div>
-          <div class="kpi-breakdown">
-            <div class="kb-pill"><div class="kb-dot" style="background:var(--p)"></div><span class="kb-num">${expansion.length}</span><span class="kb-lbl">Expansión</span></div>
-            <div class="kb-pill"><div class="kb-dot" style="background:var(--green)"></div><span class="kb-num">${crecimiento.length}</span><span class="kb-lbl">Crecimiento</span></div>
-            ${sinClasHtml}
-          </div>
-        </div>
-        <div class="kpi">
-          <div class="kpi-label">Expansión</div>
-          <div class="kpi-val" style="color:var(--p)">${expansion.length}</div>
-          <div class="kpi-sub">${expansion.filter(isActivo).length} activos · ${expansion.length - expansion.filter(isActivo).length} backlog</div>
-          <div class="kpi-bar" style="margin-top:10px"><div class="kpi-bar-fill" style="width:${expPct}%"></div></div>
-          <div style="font-size:10px;color:var(--t3);margin-top:3px">${expPct}% del portafolio</div>
-        </div>
-        <div class="kpi accent-green">
-          <div class="kpi-label">Crecimiento (RyR)</div>
-          <div class="kpi-val" style="color:var(--green)">${crecimiento.length}</div>
-          <div class="kpi-sub">${crecimiento.filter(isActivo).length} activos · ${crecimiento.length - crecimiento.filter(isActivo).length} backlog</div>
-          <div class="kpi-bar" style="margin-top:10px"><div class="kpi-bar-fill" style="width:${crePct}%;background:var(--green)"></div></div>
-          <div style="font-size:10px;color:var(--t3);margin-top:3px">${crePct}% del portafolio</div>
-        </div>
-        <div class="kpi">
-          <div class="kpi-label">Avance Promedio</div>
-          <div class="kpi-val">${pct(avg)}</div>
-          <div class="kpi-sub">proyectos activos (${activos.length})</div>
-          <div class="kpi-bar" style="margin-top:10px"><div class="kpi-bar-fill" style="width:${Math.round(avg*100)}%"></div></div>
-          <div style="font-size:10px;color:var(--t3);margin-top:3px">Plan: ${pct(avgPlan)} · <span style="color:${desvClr};font-weight:700">${desvLbl}</span></div>
-        </div>
-      </div>
-      <div class="kpi-section-label" style="margin-top:14px">Financiero</div>
-      <div class="kpi-row-b">
-        <div class="kpi kpi-compact accent-amber">
-          <div class="kpi-label">Monto Aprobado TI</div>
-          <div class="kpi-val kpi-val-sm">${fmt(monto)}</div>
-          <div class="kpi-sub">MXN</div>
-        </div>
-        <div class="kpi kpi-compact">
-          <div class="kpi-label">Erogado</div>
-          <div class="kpi-val kpi-val-sm">${fmt(erogado)}</div>
-          <div class="kpi-sub">${pctE}% del monto</div>
-          <div class="kpi-bar" style="margin-top:6px"><div class="kpi-bar-fill" style="width:${Math.min(pctE,100)}%;background:var(--amber)"></div></div>
-        </div>
-        <div class="kpi kpi-compact">
-          <div class="kpi-label">Comprometido</div>
-          <div class="kpi-val kpi-val-sm">${fmt(comp)}</div>
-          <div class="kpi-sub">MXN</div>
-        </div>
-        <div class="kpi kpi-compact">
-          <div class="kpi-label">Disponible</div>
-          <div class="kpi-val kpi-val-sm">${fmt(disp)}</div>
-          <div class="kpi-sub">${monto>0?Math.round(disp/monto*100):0}% restante</div>
-        </div>
-        ${mactiHtml}
-      </div>`;
-  },
-
-  renderStatusGrid(data) {
-    const cerrados   = data.filter(d=>['Cierre','Cancelado'].some(s=>includesFold(d._estado,s))).length;
-    const detenidos  = data.filter(d=>includesFold(d._estado,'En aprobación')).length;
-    const sinInic    = data.filter(d=>(d._fase||'').includes('01') || includesFold(d._estado,'Inicio')).length;
-    const conRRPP    = data.filter(d=>d._tiene_rrpp).length;
-    const iniciativas= data.filter(d=>d._es_iniciativa).length;
-    const desviados  = data.filter(d=>(d._desviacion||0) < -0.10).length;
-    $('status-grid').innerHTML = `
-      <div class="status-chip"><div class="status-dot" style="background:var(--red)"></div><div class="status-info"><div class="status-label">Cerrados / Cancelados</div><div class="status-val">${cerrados}</div></div></div>
-      <div class="status-chip"><div class="status-dot" style="background:var(--amber)"></div><div class="status-info"><div class="status-label">En Aprobación</div><div class="status-val">${detenidos}</div></div></div>
-      <div class="status-chip"><div class="status-dot" style="background:var(--blue)"></div><div class="status-info"><div class="status-label">Por Iniciar</div><div class="status-val">${sinInic}</div></div></div>
-      <div class="status-chip"><div class="status-dot" style="background:var(--p)"></div><div class="status-info"><div class="status-label">Con RRPP</div><div class="status-val">${conRRPP}</div></div></div>
-      <div class="status-chip"><div class="status-dot" style="background:var(--p-ll)"></div><div class="status-info"><div class="status-label">Iniciativas</div><div class="status-val">${iniciativas}</div></div></div>
-      <div class="status-chip chip-alert"><div class="status-dot" style="background:var(--red)"></div><div class="status-info"><div class="status-label label-alert">Desviación &gt; 10%</div><div class="status-val val-alert">${desviados}</div></div></div>`;
-  },
-
-  destroyCharts() {
-    ['pm','estado','tipo','fase','avance'].forEach(k => { if (CHARTS[k]) { CHARTS[k].destroy(); delete CHARTS[k]; } });
-  },
-
-  upsertChart(key, canvasId, config) {
-    const existing = CHARTS[key];
-    if (existing) {
-      existing.data.labels = config.data.labels;
-      config.data.datasets.forEach((ds, i) => {
-        if (existing.data.datasets[i]) Object.assign(existing.data.datasets[i], ds);
-        else existing.data.datasets[i] = ds;
-      });
-      existing.data.datasets.length = config.data.datasets.length;
-      existing.update();
-    } else {
-      CHARTS[key] = new Chart($(canvasId), config);
-    }
-  },
-
-  renderCharts(data) {
-    const pms = [...new Set(ALL.map(d=>d.pm))];
-    const pmEntries = pms.map(p=>({pm:p, monto:data.filter(d=>d.pm===p).reduce((s,d)=>s+d._monto,0), color:pmColor(p)}))
-                        .sort((a,b)=>b.monto-a.monto);
-    const pmChEl = document.getElementById('ch-pm');
-    if (pmChEl) pmChEl.parentElement.style.height = Math.max(90, pmEntries.length * 30 + 10) + 'px';
-    App.upsertChart('pm','ch-pm', {
-      type:'bar',
-      data:{labels:pmEntries.map(e=>e.pm), datasets:[{data:pmEntries.map(e=>e.monto), backgroundColor:pmEntries.map(e=>e.color), borderRadius:5, borderSkipped:false, barThickness:14}]},
-      options:{indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}},
-        scales:{x:{ticks:{callback:v=>fmt(v),font:{size:9}}, grid:{color:'rgba(0,0,0,.05)'}}, y:{ticks:{font:{size:11}}}}}
-    });
-    const estGroups = groupByFold(data, d=>d._estado||'Sin estado');
-    const eK = estGroups.map(g=>g.label);
-    Chart.register(donutCenter);
-    const DNUT_OPTS = {responsive:true, maintainAspectRatio:false, cutout:'62%', plugins:{legend:{display:false}}};
-    const estColors = eK.map(k=>colorForFold(k,STATUS_COLORS,'#A889AB'));
-    const estCounts = estGroups.map(g=>g.count);
-    App.upsertChart('estado','ch-estado', {
-      type:'doughnut',
-      data:{labels:eK, datasets:[{data:estCounts, backgroundColor:estColors, borderWidth:0}]},
-      options:DNUT_OPTS
-    });
-    buildLegend('leg-estado', eK, estColors, estCounts);
-    const tip = {};
-    const TIP_COLORS = {'Estratégico':'#803F85','RyR':'#1A9E6A','Sin tipo':'#A889AB'};
-    data.forEach(d=>{const t=d._tipo_proy==='RyR'?'RyR':d._tipo_proy?'Estratégico':'Sin tipo'; tip[t]=(tip[t]||0)+1;});
-    const tK = Object.keys(tip);
-    const tipColors = tK.map(k=>TIP_COLORS[k]);
-    const tipCounts = tK.map(k=>tip[k]);
-    App.upsertChart('tipo','ch-tipo', {
-      type:'doughnut',
-      data:{labels:tK, datasets:[{data:tipCounts, backgroundColor:tipColors, borderWidth:0}]},
-      options:DNUT_OPTS
-    });
-    buildLegend('leg-tipo', tK, tipColors, tipCounts);
-    const faseGroups = groupByFold(data, d=>d._fase||'Sin fase').sort((a,b)=>a.label.localeCompare(b.label));
-    const fK = faseGroups.map(g=>g.label);
-    App.upsertChart('fase','ch-fase', {
-      type:'bar',
-      data:{labels:fK, datasets:[{data:faseGroups.map(g=>g.count), backgroundColor:'#803F85', borderRadius:4}]},
-      options:{indexAxis:'y', responsive:true, maintainAspectRatio:false,
-        plugins:{legend:{display:false}},
-        scales:{x:{ticks:{font:{size:9}}}, y:{ticks:{font:{size:10}}}}}
-    });
-    const pmsAvance = [...new Set(ALL.map(d=>d.pm))];
-    const realAvg = pmsAvance.map(p=>{
-      const rows = data.filter(d=>d.pm===p && d.tipo.toLowerCase()==='proyecto');
-      return rows.length ? Math.round(rows.reduce((s,d)=>s+d._pct,0)/rows.length*100) : 0;
-    });
-    const planAvg = pmsAvance.map(p=>{
-      const rows = data.filter(d=>d.pm===p && d.tipo.toLowerCase()==='proyecto');
-      return rows.length ? Math.round(rows.reduce((s,d)=>s+d._pct_plan,0)/rows.length*100) : 0;
-    });
-    App.upsertChart('avance','ch-avance', {
-      type:'bar',
-      data:{labels:pmsAvance, datasets:[
-        {label:'Real', data:realAvg, backgroundColor:pmsAvance.map(p=>pmColor(p)), borderRadius:4},
-        {label:'Planeado', data:planAvg, backgroundColor:'#E8DCE9', borderRadius:4},
-      ]},
-      options:{responsive:true, maintainAspectRatio:false,
-        plugins:{legend:{position:'bottom',labels:{font:{size:9},boxWidth:8}}},
-        scales:{x:{ticks:{font:{size:10}}}, y:{ticks:{callback:v=>v+'%',font:{size:9}}, max:100}}}
-    });
-  },
-
-  renderPM(pm) {
-    const data = ALL.filter(d => d.pm === pm);
-    const ini = pm.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
-    const color = pmColor(pm);
-    const totalMonto = data.reduce((s,d)=>s+d._monto,0);
-    const totalErog  = data.reduce((s,d)=>s+d._erogado,0);
-    const totalDisp  = data.reduce((s,d)=>s+d._disponible,0);
-    const activos    = data.filter(d=>d.tipo.toLowerCase().startsWith('proyecto'));
-    const avg        = activos.length ? activos.reduce((s,d)=>s+d._pct,0)/activos.length : 0;
-    const avgPlan    = activos.length ? activos.reduce((s,d)=>s+d._pct_plan,0)/activos.length : 0;
-    const desv       = avg - avgPlan;
-    const unidades   = [...new Set(data.map(d=>d._unidad).filter(Boolean))];
-    const conRRPP    = data.filter(d=>d._tiene_rrpp).length;
-    const iniciativas= data.filter(d=>d._es_iniciativa).length;
-    $('main').innerHTML = `
-      <div class="pm-header" style="border-left:4px solid ${color}">
-        <div class="pm-avatar" style="background:${color}">${ini}</div>
-        <div>
-          <div class="pm-name">${pm}</div>
-          <div class="pm-meta">
-            <span><i class="ti ti-briefcase"></i> ${data.length} proyectos</span>
-            <span><i class="ti ti-building-hospital"></i> ${unidades.length} unidades</span>
-            <span><i class="ti ti-trending-up"></i> ${pct(avg)} avance</span>
-            ${conRRPP ? `<span style="color:${color}"><i class="ti ti-file-invoice"></i> ${conRRPP} con RRPP</span>` : ''}
-            ${iniciativas ? `<span style="color:var(--t2)"><i class="ti ti-bulb"></i> ${iniciativas} iniciativas</span>` : ''}
-            <span class="${desvClass(desv)}"><i class="ti ti-arrows-diff"></i> Desviación: ${desvStr(desv)}</span>
-          </div>
-        </div>
-        <div class="pm-header-kpis">
-          <div class="pm-mini-kpi"><span class="pm-mini-label"><i class="ti ti-coin"></i> Monto Aprobado TI</span><span class="pm-mini-val" style="color:${color}">${fmt(totalMonto)}</span></div>
-          <div class="pm-mini-kpi"><span class="pm-mini-label"><i class="ti ti-receipt"></i> Erogado</span><span class="pm-mini-val" style="color:${color}">${fmt(totalErog)}</span></div>
-          <div class="pm-mini-kpi"><span class="pm-mini-label"><i class="ti ti-wallet"></i> Disponible</span><span class="pm-mini-val" style="color:${color}">${fmt(totalDisp)}</span></div>
-        </div>
-        <button class="btn-primary" onclick="App.exportMSR()" style="margin-left:auto;background:${color}">
-          <i class="ti ti-file-download"></i> Exportar MSR_R
-        </button>
-      </div>
-      <section class="dsec">
-      ${App.secHead('01','Inversión por unidad','Monto aprobado TI de los proyectos de ' + pm)}
-      <div class="chart-card">
-        <div class="chart-header"><i class="ti ti-chart-bar"></i><span class="chart-title">Monto por Unidad</span><span class="chart-title-sub">MXN</span></div>
-        <div class="chart-wrap" style="height:180px"><canvas id="ch-pm"></canvas></div>
-      </div>
-      </section>
-      <section class="dsec">
-      ${App.secHead('02','Estado y fase','Situación actual de los proyectos asignados')}
-      <div class="charts-bot" style="margin-bottom:0">
-        <div class="chart-card">
-          <div class="chart-header"><i class="ti ti-chart-donut"></i><span class="chart-title">Por Estado</span></div>
-          <div class="chart-wrap" style="display:flex;align-items:center;gap:12px">
-            <div style="position:relative;flex-shrink:0;width:48%;height:100%"><canvas id="ch-estado"></canvas></div>
-            <div id="leg-pm-estado" style="flex:1;overflow:hidden"></div>
-          </div>
-        </div>
-        <div class="chart-card">
-          <div class="chart-header"><i class="ti ti-chart-pie"></i><span class="chart-title">Por Fase</span></div>
-          <div class="chart-wrap" style="display:flex;align-items:center;gap:12px">
-            <div style="position:relative;flex-shrink:0;width:48%;height:100%"><canvas id="ch-tipo"></canvas></div>
-            <div id="leg-pm-fase" style="flex:1;overflow:hidden"></div>
-          </div>
-        </div>
-      </div>
-      </section>
-      <section class="dsec">
-      ${App.secHead('03','Proyectos','Listado completo con filtros y búsqueda')}
-      <div class="table-card">
-        <div class="table-header">
-          <div class="table-header-left"><i class="ti ti-table"></i><span class="table-title">Proyectos de ${pm}</span></div>
-          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-            <div class="search-box">
-              <i class="ti ti-search"></i>
-              <input type="text" id="search-input" placeholder="Buscar proyecto..." value="${SEARCH}" oninput="App.onSearch(this.value)">
-            </div>
-            <span class="table-count" id="tbl-count"></span>
-          </div>
-        </div>
-        <div class="tbl-filter-bar" id="tbl-filter-bar"></div>
-        <div class="table-scroll-top" id="tbl-scroll-top"><div class="table-scroll-top-inner" id="tbl-scroll-top-inner"></div></div>
-        <div class="table-scroll" id="tbl-scroll"><div id="tbl"></div></div>
-      </div>
-      </section>`;
-    FILTERED = data;
-    App.renderChartsPM(data, color);
-    App.renderTblFilters(data);
-    App.renderTable(App.applyTblFilters(data));
-  },
-
-  renderChartsPM(data, color) {
-    Chart.register(donutCenter);
-    const DNUT_OPTS = {responsive:true, maintainAspectRatio:false, cutout:'62%', plugins:{legend:{display:false}}};
-
-    const uds = [...new Set(data.map(d=>d._unidad).filter(Boolean))];
-    const udEntries = uds.map(u => ({
-      label: u,
-      monto: data.filter(d=>d._unidad===u).reduce((s,d)=>s+d._monto,0)
-    })).sort((a,b)=>b.monto-a.monto);
-    App.upsertChart('pm','ch-pm', {
-      type:'bar',
-      data:{labels:udEntries.map(e=>e.label), datasets:[{data:udEntries.map(e=>e.monto), backgroundColor:color||'#803F85', borderRadius:5}]},
-      options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}},
-        scales:{x:{ticks:{font:{size:9},maxRotation:30}}, y:{ticks:{callback:v=>fmt(v),font:{size:9}}}}}
-    });
-
-    const estGroups = groupByFold(data, d=>d._estado||'Sin estado');
-    const eK = estGroups.map(g=>g.label);
-    const estColors = eK.map(k=>colorForFold(k,STATUS_COLORS,'#A889AB'));
-    const estCounts = estGroups.map(g=>g.count);
-    App.upsertChart('estado','ch-estado', {
-      type:'doughnut',
-      data:{labels:eK, datasets:[{data:estCounts, backgroundColor:estColors, borderWidth:0}]},
-      options:DNUT_OPTS
-    });
-    buildLegend('leg-pm-estado', eK, estColors, estCounts);
-
-    const faseGroups = groupByFold(data, d=>d._fase||'Sin fase');
-    const fK = faseGroups.map(g=>g.label);
-    const faseColors = fK.map((k,i)=>PM_COLORS[i%PM_COLORS.length]);
-    const faseCounts = faseGroups.map(g=>g.count);
-    App.upsertChart('tipo','ch-tipo', {
-      type:'doughnut',
-      data:{labels:fK, datasets:[{data:faseCounts, backgroundColor:faseColors, borderWidth:0}]},
-      options:DNUT_OPTS
-    });
-    buildLegend('leg-pm-fase', fK, faseColors, faseCounts);
-  },
-
-  sortTable(col) {
-    if (SORT_COL === col) SORT_DIR *= -1;
-    else { SORT_COL = col; SORT_DIR = col === '_nombre' ? 1 : -1; }
-    App.renderTable(App.applyTblFilters(FILTERED));
-  },
-
-  renderTable(data) {
-  const search = foldText(SEARCH);
-  const visible = search
-    ? data.filter(d => includesFold(d._nombre,search) || includesFold(d._unidad,search) || includesFold(d.pm,search))
-    : data;
-  $('tbl-count').textContent = visible.length + ' registros';
-  if (!visible.length) {
-    $('tbl').innerHTML = '<div class="empty-state"><i class="ti ti-search empty-icon"></i><div class="empty-title">Sin resultados</div></div>';
-    return;
-  }
-  const ORDER_MAP = {_estado: ESTADO_ORDER, _fase: FASE_ORDER};
-  const sorted = [...visible].sort((a,b) => {
-    const orderList = ORDER_MAP[SORT_COL];
-    if (orderList) {
-      const ra = orderIndexOf(a[SORT_COL], orderList);
-      const rb = orderIndexOf(b[SORT_COL], orderList);
-      if (ra !== rb) return (ra - rb) * SORT_DIR;
-      return String(a[SORT_COL]||'').localeCompare(String(b[SORT_COL]||'')) * SORT_DIR;
-    }
-    const va = a[SORT_COL] || '';
-    const vb = b[SORT_COL] || '';
-    if (typeof va === 'number') return (va - vb) * SORT_DIR;
-    return String(va).localeCompare(String(vb)) * SORT_DIR;
-  });
-  const cols = [
-    {label:'', key:'_health', noSort:true},
-    {label:'', key:'_alert', noSort:true},
-    {label:'# Proyecto', key:'_id'},
-    {label:'Nombre del Proyecto', key:'_nombre'},
-    {label:'PM', key:'pm'},
-    {label:'Unidad', key:'_unidad'},
-    {label:'Fase', key:'_fase'},
-    {label:'Estado', key:'_estado'},
-    {label:'Tipo', key:'_tipo_proy'},
-    {label:'RRPP', key:'_rrpp'},
-    {label:'Fecha Inicio', key:'_fecha_ini'},
-    {label:'Fecha Cierre', key:'_fecha_cie'},
-    {label:'Fecha Go Live', key:'_fecha_golive'},
-    {label:'Monto Aprobado TI', key:'_monto'},
-    {label:'Erogado', key:'_erogado'},
-    {label:'Disponible', key:'_disponible'},
-    {label:'% Real', key:'_pct'},
-    {label:'% Plan', key:'_pct_plan'},
-    {label:'Desviación', key:'_desviacion'},
-    {label:'% MACTI', key:'_macti'},
-  ];
-  const arrow = key => {
-    if (SORT_COL !== key) return '<i class="ti ti-arrows-sort" style="opacity:.3;font-size:11px"></i>';
-    return SORT_DIR === 1
-      ? '<i class="ti ti-sort-ascending" style="font-size:11px;color:var(--p)"></i>'
-      : '<i class="ti ti-sort-descending" style="font-size:11px;color:var(--p)"></i>';
-  };
-  const fmtFecha = v => {
-    if (!v || v === '' || v === 'nan' || v === '-') return '—';
-    const s = String(v);
-    if (includesFold(s,'INICIATIVA') || includesFold(s,'TBD')) {
-      return `<span style="font-size:10px;background:#F3EAF4;color:#803F85;padding:2px 6px;border-radius:4px">Iniciativa</span>`;
-    }
-    if (!isNaN(v) && Number(v) > 1000) {
-      const d = new Date(Math.round((Number(v) - 25569) * 86400 * 1000) + new Date().getTimezoneOffset() * 60 * 1000);
-      return d.toLocaleDateString('es-MX', {day:'2-digit', month:'short', year:'numeric'});
-    }
-    try {
-      const d = new Date(v);
-      if (!isNaN(d.getTime()) && d.getFullYear() > 1970) {
-        return d.toLocaleDateString('es-MX', {day:'2-digit', month:'short', year:'numeric'});
-      }
-    } catch(e) {}
-    return s;
-  };
-  $('tbl').innerHTML = `
-    <table>
-      <thead><tr>
-        ${cols.map(c=>c.noSort
-          ? `<th style="width:${c.key==='_health'?'4px':'28px'};padding:${c.key==='_health'?'0':''}"></th>`
-          : `<th onclick="App.sortTable('${c.key}')" style="cursor:pointer;user-select:none">${c.label} ${arrow(c.key)}</th>`
-        ).join('')}
-      </tr></thead>
-      <tbody>
-        ${sorted.map(d=>{
-          const overdue = isGoLiveOverdue(d);
-          const overdueTitle = 'Fecha Go Live pasada y la fase aún no es Cierre';
-          return `
-          <tr ${overdue ? `style="background:#FDECEC" title="${overdueTitle}"` : ''}>${(()=>{
-            const desv = d._desviacion||0;
-            const hc = desv >= -0.05 ? '#1A9E6A' : desv >= -0.12 ? '#C8A200' : '#D94040';
-            const tc = /^estrat[eé]gico$/i.test(d._tipo_proy||'') ? 'tc-exp' : /^ryr$/i.test(d._tipo_proy||'') ? 'tc-ryr' : 'tc-na';
-            d.__hc = hc; d.__tc = tc; return '';
-          })()}
-            <td class="tr-health-cell"><div class="tr-health-bar" style="background:${d.__hc}"></div></td>
-            <td style="width:28px;text-align:center">${overdue ? `<i class="ti ti-alert-triangle-filled" style="color:#D94040;font-size:14px" title="Fecha Go Live pasada"></i>` : ''}</td>
-            <td><span style="font-family:'DM Mono',monospace;font-size:11px">${d._id||'—'}</span></td>
-            <td title="${d._nombre}">${d._nombre||'—'}</td>
-            <td><span class="chip" style="background:${pmColor(d.pm)}18;color:${pmColor(d.pm)};border:1px solid ${pmColor(d.pm)}33">${d.pm}</span></td>
-            <td title="${d._unidad}">${d._unidad||'—'}</td>
-            <td>${d._fase||'—'}</td>
-            <td><span class="badge ${badgeClass(d._estado)}">${d._estado||'—'}</span></td>
-            <td><span class="type-chip ${d.__tc}">${d._tipo_proy||'—'}</span></td>
-            <td><span style="font-family:'DM Mono',monospace;font-size:11px">${d._rrpp||'—'}</span></td>
-            <td style="font-size:11px">${fmtFecha(d._fecha_ini)}</td>
-            <td style="font-size:11px">${fmtFecha(d._fecha_cie)}</td>
-            <td style="font-size:11px">${fmtFecha(d._fecha_golive)}</td>
-            <td>${fmt(d._monto)}</td>
-            <td>${fmt(d._erogado)}</td>
-            <td>${fmt(d._disponible)}</td>
-            <td><div class="prog"><div class="prog-bar"><div class="prog-fill" style="width:${Math.round((d._pct||0)*100)}%;background:${pmColor(d.pm)}"></div></div><span class="prog-val">${pct(d._pct)}</span></div></td>
-            <td><span class="prog-val">${pct(d._pct_plan)}</span></td>
-            <td><span class="${desvClass(d._desviacion)}">${desvStr(d._desviacion)}</span></td>
-            <td>${d._macti !== null && d._macti !== undefined
-              ? `<span style="font-size:11px;font-weight:600;color:${d._macti>=80?'#1A9E6A':d._macti>=50?'#C8A200':'#D94040'}">${d._macti.toFixed(2)}%</span>`
-              : '<span style="color:var(--t3);font-size:11px">—</span>'
-            }</td>
-          </tr>`;
-        }).join('')}
-      </tbody>
-    </table>`;
-
-  const scrollBottom = $('tbl-scroll');
-  const scrollTop = $('tbl-scroll-top');
-  const scrollTopInner = $('tbl-scroll-top-inner');
-  if (scrollBottom && scrollTop && scrollTopInner) {
-    const table = scrollBottom.querySelector('table');
-    scrollTopInner.style.width = table.scrollWidth + 'px';
-    scrollTop.onscroll = () => { scrollBottom.scrollLeft = scrollTop.scrollLeft; };
-    scrollBottom.onscroll = () => { scrollTop.scrollLeft = scrollBottom.scrollLeft; };
-  }
-},
-
-  async exportMSR() {
-    if (!FILTERED.length) return;
-    if (typeof ExcelJS === 'undefined') {
-      alert('La librería ExcelJS no cargó. Verifica que el dashboard esté abierto con conexión a internet.');
+    const ws = wb.Sheets[sheetName];
+    const raw = X.utils.sheet_to_json(ws, { header: 1, defval: '', raw: true, blankrows: true });
+    const firstRow = ws['!ref'] ? X.utils.decode_range(ws['!ref']).s.r : 0;
+    const hdr = raw.slice(0, 40).findIndex(row => row.some(c => fold(c) === 'nombre del proyecto'));
+    if (hdr < 0) {
+      sheets.push({ sheet: sheetName, pm: pmName || '', status: pmName ? 'no-header' : 'ignored', reason: pmName ? 'No se encontró la columna "Nombre del proyecto"' : 'No contiene una tabla de proyectos', rows: 0, monto: 0 });
       return;
     }
-    try {
+    const pm = pmName || clean(sheetName);
+    found.add(pm);
+    const H = raw[hdr].map(fold);
+    const idx = {};
+    for (const [key, aliases] of Object.entries(COLS)) {
+      idx[key] = -1;
+      for (const a of aliases) { const i = H.indexOf(a); if (i >= 0) { idx[key] = i; break; } }
+    }
+    const get = (row, key) => (idx[key] >= 0 ? row[idx[key]] : '');
+    const sheetInfo = { sheet: sheetName, pm, status: pmName ? 'ok' : 'auto', rows: 0, monto: 0, skipped: [],
+      missingCols: ['tipo', 'monto', 'fase', 'estado', 'unidad', 'pct'].filter(k => idx[k] < 0) };
+    if (!pmName) sheetInfo.reason = 'Hoja con proyectos que no está configurada como PM: se incluyó automáticamente';
 
-    const P1='FF5C2B60', P2='FF803F85', DB1='FF1F3864', DB2='FF2E4E8A';
+    for (let r = hdr + 1; r < raw.length; r++) {
+      const row = raw[r];
+      const excelRow = r + firstRow + 1;
+      const nombre = clean(get(row, 'nombre'));
+      if (isBlank(nombre) || fold(nombre) === 'nombre del proyecto') continue;
+      if (/^(sub)?total(es)?\b|^gran total/.test(fold(nombre))) { sheetInfo.skipped.push(`Fila ${excelRow}: "${nombre}" (fila de totales)`); continue; }
+      const pct = toPct(get(row, 'pct'));
+      const pctPlan = toPct(get(row, 'pctPlan'));
+      const mactiRaw = toPct(get(row, 'macti'));
+      const rec = {
+        uid: `${sheetIdx}-${excelRow}`, order: sheetIdx * 100000 + excelRow, pm, sheet: sheetName, row: excelRow,
+        tipoRaw: clean(get(row, 'tipo')),
+        rrpp: isBlank(get(row, 'rrpp')) ? '' : clean(get(row, 'rrpp')),
+        id: isBlank(get(row, 'id')) ? '' : clean(get(row, 'id')),
+        nombre,
+        direccion: clean(get(row, 'direccion')),
+        tipoProy: tipoProyDe(get(row, 'tipoProy')),
+        tamano: clean(get(row, 'tamano')),
+        fase: isBlank(get(row, 'fase')) ? '' : clean(get(row, 'fase')),
+        estado: isBlank(get(row, 'estado')) ? '' : clean(get(row, 'estado')),
+        unidad: isBlank(get(row, 'unidad')) ? '' : clean(get(row, 'unidad')),
+        pct, pctPlan,
+        desv: pct != null && pctPlan != null ? pct - pctPlan : null,
+        monto: toMoney(get(row, 'monto')),
+        erogado: toMoney(get(row, 'erogado')),
+        comprometido: toMoney(get(row, 'comprometido')),
+        disponible: toMoney(get(row, 'disponible')),
+        fechaIni: toDate(get(row, 'fechaIni')),
+        golive: toDate(get(row, 'golive')),
+        fechaCie: toDate(get(row, 'fechaCie')),
+        clasif: clean(get(row, 'clasif')), prioridad: clean(get(row, 'prioridad')),
+        lider: clean(get(row, 'lider')), gestor: clean(get(row, 'gestor')), sponsor: clean(get(row, 'sponsor')),
+        liderProy: clean(get(row, 'liderProy')), ruta: clean(get(row, 'ruta')), tipoServ: clean(get(row, 'tipoServ')),
+        core: clean(get(row, 'core')), desc: cleanMulti(get(row, 'desc')),
+        macti: mactiRaw == null ? null : Math.round(mactiRaw * 1000) / 10,
+      };
+      rec.esfuerzo = esfuerzoDe(rec.tipoRaw);
+      rec.activo = rec.esfuerzo === 'Proyecto';
+      rec.overdue = rec.activo && !!rec.golive.date && rec.golive.date < today && !isCierre(rec);
+      rec.health = rec.desv == null ? 'none' : rec.desv >= -0.05 ? 'ok' : rec.desv >= -0.10 ? 'warn' : 'bad';
+      records.push(rec);
+      sheetInfo.rows++;
+      sheetInfo.monto += rec.monto;
+    }
+    sheets.push(sheetInfo);
+    pmOrder.push(pm);
+  });
 
-    const fmtDate = v => {
-      if (!v || v==='' || v==='nan' || v==='-') return '';
-      const s = String(v);
-      if (includesFold(s,'INICIATIVA')||includesFold(s,'TBD')) return s;
-      if (!isNaN(v) && Number(v)>1000) {
-        const d = new Date(Math.round((Number(v)-25569)*86400*1000)+new Date().getTimezoneOffset()*60*1000);
-        return d.toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'});
+  PM_CONFIG.forEach(pm => {
+    if (!found.has(pm.name) && !sheets.some(s => s.pm === pm.name)) sheets.push({ sheet: pm.name, pm: pm.name, status: 'missing', reason: 'No se encontró la hoja de este PM en el archivo', rows: 0, monto: 0 });
+  });
+
+  // MACTI global: checklist dedicado si existe; si no, promedio de la columna "% MACTI" en proyectos activos
+  let macti = null;
+  const mactiSheet = wb.SheetNames.find(n => /macti/i.test(n));
+  if (mactiSheet) {
+    const raw = X.utils.sheet_to_json(wb.Sheets[mactiSheet], { header: 1, defval: '' });
+    let req = 0, sub = 0;
+    raw.slice(3).forEach(row => { if (typeof row[10] === 'number' && row[10] > 0) { req += row[10]; sub += typeof row[11] === 'number' ? row[11] : 0; } });
+    if (req > 0) macti = { value: Math.round(sub / req * 1000) / 10, basis: 'checklist' };
+  }
+  return { records, sheets, pmOrder, issues: auditRecords(records), macti };
+}
+
+function auditRecords(records) {
+  const checks = [
+    { code: 'activo-sin-monto', level: 'warn', label: 'Proyectos activos sin Monto TI', test: r => r.activo && !r.monto },
+    { code: 'activo-sin-fase', level: 'warn', label: 'Proyectos activos sin fase', test: r => r.activo && !r.fase },
+    { code: 'activo-sin-avance', level: 'warn', label: 'Proyectos activos sin % real o % planeado', test: r => r.activo && (r.pct == null || r.pctPlan == null) },
+    { code: 'erogado-excede', level: 'warn', label: 'Erogado mayor al monto aprobado', test: r => r.monto > 0 && r.erogado > r.monto + 1 },
+    { code: 'pct-rango', level: 'warn', label: 'Porcentaje de avance mayor a 100%', test: r => (r.pct || 0) > 1.0001 || (r.pctPlan || 0) > 1.0001 },
+    { code: 'rrpp-texto', level: 'info', label: 'RRPP con texto en lugar de número', test: r => r.rrpp && !/\d/.test(r.rrpp), detail: r => `RRPP: "${r.rrpp}"` },
+    { code: 'sin-esfuerzo', level: 'info', label: 'Sin "Tipo de esfuerzo" (no cuentan como activos ni backlog)', test: r => r.esfuerzo === 'Sin clasificar' },
+    { code: 'sin-tipo', level: 'info', label: 'Sin "Tipo de proyecto" (Estratégico / RyR)', test: r => !r.tipoProy },
+    { code: 'sin-estado', level: 'info', label: 'Sin estado capturado', test: r => !r.estado },
+    { code: 'sin-unidad', level: 'info', label: 'Sin unidad a desplegar', test: r => !r.unidad },
+    { code: 'fecha-texto', level: 'info', label: 'Fechas escritas como texto (se muestran tal cual)', test: r => [r.fechaIni, r.golive, r.fechaCie].some(d => d.kind === 'texto' || d.kind === 'multiple'), detail: r => [['Inicio', r.fechaIni], ['Go Live', r.golive], ['Cierre', r.fechaCie]].filter(([, d]) => d.kind === 'texto' || d.kind === 'multiple').map(([k, d]) => `${k}: "${d.text.replace(/\n/g, ' / ')}"`).join(' · ') },
+  ];
+  const issues = checks.map(c => ({ ...c, items: records.filter(c.test).map(r => ({ uid: r.uid, pm: r.pm, nombre: r.nombre, row: r.row, sheet: r.sheet, detail: c.detail ? c.detail(r) : '' })) }));
+  // Duplicados: mismo # de proyecto en más de un registro → riesgo de sumar dos veces el monto
+  const byId = {};
+  records.forEach(r => { if (r.id && /^\d+$/.test(r.id)) (byId[r.id] = byId[r.id] || []).push(r); });
+  const dups = Object.entries(byId).filter(([, rs]) => rs.length > 1).flatMap(([id, rs]) => rs.map(r => ({ uid: r.uid, pm: r.pm, nombre: r.nombre, row: r.row, sheet: r.sheet, detail: `# ${id} aparece ${rs.length} veces` })));
+  issues.unshift({ code: 'duplicado', level: 'bad', label: 'Mismo # de proyecto en más de un registro (posible doble conteo)', items: dups });
+  return issues.map(({ test, detail, ...rest }) => rest);
+}
+
+// ═══════════════════════════ FORMATOS ═══════════════════════════
+const NF0 = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', currencyDisplay: 'narrowSymbol', maximumFractionDigits: 0 });
+const NF2 = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', currencyDisplay: 'narrowSymbol', minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const NUM = new Intl.NumberFormat('es-MX');
+const money = v => NF0.format(v || 0);
+const moneyExact = v => NF2.format(v || 0);
+function moneyShort(v) {
+  const a = Math.abs(v || 0);
+  if (a >= 1e6) return '$' + (v / 1e6).toLocaleString('es-MX', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + ' M';
+  if (a >= 1e3) return '$' + Math.round(v / 1e3).toLocaleString('es-MX') + ' K';
+  return money(v);
+}
+const pctFmt = v => (v == null ? '—' : Math.round(v * 100) + '%');
+const ptsFmt = v => (v == null ? '—' : (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(Math.round(v * 100)) + ' pts');
+const share = (a, b) => (b > 0 ? a / b : 0);
+const DATE_FMT = new Intl.DateTimeFormat('es-MX', { day: '2-digit', month: 'short', year: 'numeric' });
+function dateHtml(d) {
+  if (d.kind === 'fecha') return esc(DATE_FMT.format(d.date));
+  if (d.kind === 'mes') return esc(d.date.toLocaleDateString('es-MX', { month: 'short', year: 'numeric' }));
+  if (d.kind === 'anio') return esc(d.text);
+  if (d.kind === 'iniciativa') return '<span class="tag">Iniciativa</span>';
+  if (d.kind === 'tbd') return '<span class="tag">Por definir</span>';
+  if (d.kind === 'multiple' || d.kind === 'texto') return `<span class="tag" title="${esc(d.text)}"><i class="ti ti-notes"></i>${d.date ? esc(DATE_FMT.format(d.date)) : 'Texto'}</span>`;
+  return '<span class="muted">—</span>';
+}
+const dateText = d => (d.kind === 'fecha' ? DATE_FMT.format(d.date) : d.kind === 'mes' ? d.date.toLocaleDateString('es-MX', { month: 'short', year: 'numeric' }) : d.text || '—');
+const fmtStamp = ts => new Date(ts).toLocaleString('es-MX', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+
+// ═══════════════════════════ ESTADO ═══════════════════════════
+const S = {
+  data: null, meta: null, view: 'general',
+  filters: { pm: '', esfuerzo: '', tipo: '', fase: '', unidad: '', estado: '', alerta: '' },
+  q: '', sort: { key: 'order', dir: 1 }, charts: {}, pmColor: {},
+};
+const $ = id => document.getElementById(id);
+const ALERTS = [
+  { key: 'golive', label: 'Go Live vencido', icon: 'ti-calendar-x', st: 'critical', test: r => r.overdue },
+  { key: 'desv', label: 'Atraso > 10 pts vs plan', icon: 'ti-trending-down', st: 'serious', test: r => r.activo && r.desv != null && r.desv < -0.10 },
+  { key: 'aprob', label: 'En aprobación', icon: 'ti-hourglass-high', st: 'warning', test: r => fold(r.estado).includes('aprob') },
+  { key: 'espera', label: 'En espera / On hold', icon: 'ti-player-pause', st: 'warning', test: r => /espera|hold|pausa|deten/.test(fold(r.estado)) },
+  { key: 'sinmonto', label: 'Activos sin monto', icon: 'ti-coin-off', st: 'neutral', test: r => r.activo && !r.monto },
+];
+const viewRecords = () => (S.data ? (S.view === 'general' ? S.data.records : S.data.records.filter(r => r.pm === S.view)) : []);
+function applyFilters(rows) {
+  const f = S.filters;
+  const alert = ALERTS.find(a => a.key === f.alerta);
+  return rows.filter(r =>
+    (!f.pm || r.pm === f.pm) && (!f.esfuerzo || r.esfuerzo === f.esfuerzo) &&
+    (!f.tipo || (r.tipoProy || 'Sin tipo') === f.tipo) && (!f.fase || (r.fase || 'Sin fase') === f.fase) &&
+    (!f.unidad || (r.unidad || 'Sin unidad') === f.unidad) && (!f.estado || fold(r.estado || 'Sin estado') === fold(f.estado)) &&
+    (!alert || alert.test(r)));
+}
+function searched(rows) {
+  const q = fold(S.q);
+  if (!q) return rows;
+  return rows.filter(r => fold([r.nombre, r.id, r.rrpp, r.unidad, r.pm, r.direccion, r.estado].join(' ')).includes(q));
+}
+
+// ═══════════════════════════ CACHÉ LOCAL (IndexedDB) ═══════════════════════════
+function idb() {
+  return new Promise((resolve, reject) => {
+    if (!window.indexedDB) return reject(new Error('IndexedDB no disponible'));
+    const req = indexedDB.open(IDB.name, 1);
+    req.onupgradeneeded = () => req.result.createObjectStore(IDB.store);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+async function cacheSave(buffer, meta) {
+  const db = await idb();
+  await new Promise((resolve, reject) => {
+    const tx = db.transaction(IDB.store, 'readwrite');
+    tx.objectStore(IDB.store).put({ buffer, meta }, IDB.key);
+    tx.oncomplete = resolve; tx.onerror = () => reject(tx.error);
+  });
+  localStorage.setItem(LS_META, JSON.stringify(meta));
+}
+async function cacheLoad() {
+  const db = await idb();
+  const val = await new Promise((resolve, reject) => {
+    const req = db.transaction(IDB.store, 'readonly').objectStore(IDB.store).get(IDB.key);
+    req.onsuccess = () => resolve(req.result); req.onerror = () => reject(req.error);
+  });
+  if (!val) return null;
+  if (val instanceof ArrayBuffer) return { buffer: val, meta: readMeta() || { name: 'Portafolio.xlsx', ts: Date.now() } };
+  return val;
+}
+async function cacheClear() {
+  localStorage.removeItem(LS_META);
+  try {
+    const db = await idb();
+    await new Promise(resolve => { const tx = db.transaction(IDB.store, 'readwrite'); tx.objectStore(IDB.store).delete(IDB.key); tx.oncomplete = resolve; tx.onerror = resolve; });
+  } catch (e) { /* sin IndexedDB no hay nada que borrar */ }
+}
+function readMeta() { try { return JSON.parse(localStorage.getItem(LS_META) || 'null'); } catch (e) { return null; } }
+
+// ═══════════════════════════ AVISOS Y DIÁLOGOS ═══════════════════════════
+function toast(msg, kind = 'good') {
+  const el = document.createElement('div');
+  el.className = 'toast ' + kind;
+  el.innerHTML = `<i class="ti ${kind === 'bad' ? 'ti-alert-circle' : 'ti-circle-check'}"></i><div>${esc(msg)}</div>`;
+  $('toasts').appendChild(el);
+  setTimeout(() => el.remove(), kind === 'bad' ? 7000 : 4000);
+}
+function confirmDialog(title, text, okLabel) {
+  return new Promise(resolve => {
+    const bg = document.createElement('div');
+    bg.className = 'dialog-bg';
+    bg.innerHTML = `<div class="dialog" role="alertdialog" aria-modal="true" aria-labelledby="dlg-t"><h3 id="dlg-t">${esc(title)}</h3><p>${esc(text)}</p>
+      <div class="dialog-actions"><button class="btn btn-soft" data-r="0">Cancelar</button><button class="btn btn-primary" data-r="1">${esc(okLabel)}</button></div></div>`;
+    const close = v => { bg.remove(); document.removeEventListener('keydown', onKey); resolve(v); };
+    const onKey = e => { if (e.key === 'Escape') close(false); };
+    bg.addEventListener('click', e => { const b = e.target.closest('[data-r]'); if (b) close(b.dataset.r === '1'); else if (e.target === bg) close(false); });
+    document.addEventListener('keydown', onKey);
+    document.body.appendChild(bg);
+    bg.querySelector('[data-r="1"]').focus();
+  });
+}
+function setLoading(on, text = 'Procesando archivo…') {
+  let el = $('loading');
+  if (on && !el) { el = document.createElement('div'); el.id = 'loading'; el.className = 'loading'; el.innerHTML = `<div class="loading-card"><div class="spinner"></div><span>${esc(text)}</span></div>`; document.body.appendChild(el); }
+  if (!on && el) el.remove();
+}
+const nextFrame = () => new Promise(r => requestAnimationFrame(() => setTimeout(r, 0)));
+
+// ═══════════════════════════ CARGA DE ARCHIVO ═══════════════════════════
+async function handleFile(file) {
+  if (!file) return;
+  if (!/\.(xlsx|xlsm|xls)$/i.test(file.name)) return toast('El archivo debe ser de Excel (.xlsx).', 'bad');
+  if (file.size > MAX_FILE_MB * 1024 * 1024) return toast(`El archivo pesa más de ${MAX_FILE_MB} MB.`, 'bad');
+  setLoading(true);
+  await nextFrame();
+  try {
+    const buffer = await file.arrayBuffer();
+    const wb = XLSX.read(buffer, { type: 'array', cellNF: true });
+    const data = parseWorkbook(wb);
+    data.wb = wb;
+    if (!data.records.length) {
+      setLoading(false);
+      return toast('No se encontraron proyectos. Verifica que sea el Excel del Portafolio Expansión TI (hojas por PM con la columna "Nombre del proyecto").', 'bad');
+    }
+    const meta = { name: file.name, size: file.size, modified: file.lastModified || null, ts: Date.now() };
+    try { await cacheSave(buffer, meta); } catch (e) { localStorage.setItem(LS_META, JSON.stringify(meta)); toast('El archivo se abrió, pero el navegador no permitió guardarlo para la próxima vez.', 'bad'); }
+    setData(data, meta);
+    hideMenu();
+    const nSheets = data.sheets.filter(s => s.status === 'ok' || s.status === 'auto').length;
+    toast(`${NUM.format(data.records.length)} registros leídos de ${nSheets} hojas · ${money(sum(data.records, 'monto'))} en Monto TI`);
+  } catch (e) {
+    console.error(e);
+    toast('No se pudo leer el archivo. ¿Está dañado o protegido con contraseña?', 'bad');
+  } finally {
+    setLoading(false);
+  }
+}
+async function restoreFromCache() {
+  if (!readMeta()) return false;
+  try {
+    const cached = await cacheLoad();
+    if (!cached) { localStorage.removeItem(LS_META); refreshMenu(); return false; }
+    const wb = XLSX.read(cached.buffer, { type: 'array', cellNF: true });
+    const data = parseWorkbook(wb);
+    data.wb = wb;
+    setData(data, cached.meta);
+    return true;
+  } catch (e) {
+    console.error(e);
+    return false;
+  }
+}
+function setData(data, meta) {
+  S.data = data; S.meta = meta;
+  S.pmColor = {};
+  let extra = 0;
+  data.pmOrder.forEach(pm => {
+    const i = PM_CONFIG.findIndex(p => p.name === pm);
+    S.pmColor[pm] = i >= 0 ? SERIES[i] : (PM_CONFIG.length + extra < SERIES.length ? SERIES[PM_CONFIG.length + extra++] : C.ink3);
+  });
+  const saved = sessionStorage.getItem('cm_view');
+  S.view = saved && (saved === 'general' || data.pmOrder.includes(saved)) ? saved : 'general';
+  resetFilters();
+  refreshMenu();
+  refreshHeader();
+  renderTabs();
+  renderView();
+}
+const pmColor = pm => S.pmColor[pm] || C.brand600;
+// Texto blanco u oscuro según el contraste del color de fondo (WCAG)
+function inkOn(hex) {
+  const lin = c => { c /= 255; return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4; };
+  const n = parseInt(hex.slice(1), 16);
+  const L = 0.2126 * lin(n >> 16) + 0.7152 * lin((n >> 8) & 255) + 0.0722 * lin(n & 255);
+  return (1.05 / (L + 0.05)) >= 4.5 ? '#fff' : '#1E0F20';
+}
+function resetFilters() {
+  S.filters = { pm: '', esfuerzo: '', tipo: '', fase: '', unidad: '', estado: '', alerta: '' };
+  S.q = ''; S.sort = { key: 'order', dir: 1 };
+}
+
+// ═══════════════════════════ MENÚ ═══════════════════════════
+function refreshMenu() {
+  const meta = readMeta();
+  const box = $('mn-pf-file');
+  box.classList.toggle('has', !!meta);
+  $('mn-pf-ico').className = 'ti ' + (meta ? 'ti-file-check' : 'ti-file-spreadsheet');
+  $('mn-pf-t').textContent = meta ? 'Archivo guardado en este equipo' : 'Sin archivo en este equipo';
+  $('mn-pf-s').title = meta ? meta.name : '';
+  $('mn-pf-s').textContent = meta ? `${meta.name} · cargado el ${fmtStamp(meta.ts)}` : 'Carga el Excel del portafolio una vez y quedará guardado aquí.';
+  $('mn-pf-load-t').textContent = meta ? 'Reemplazar' : 'Cargar Excel';
+  $('mn-pf-open').hidden = !meta;
+  const pill = $('mn-pf-pill');
+  pill.textContent = meta ? 'Listo' : 'Sin archivo';
+  pill.className = 'pill ' + (meta ? 'pill-g' : 'pill-p');
+}
+function hideMenu() { $('menu').classList.add('is-hidden'); sessionStorage.setItem('cm_dash_open', '1'); }
+function showMenu() { showToolsStep(); refreshMenu(); $('menu').classList.remove('is-hidden'); sessionStorage.removeItem('cm_dash_open'); window.scrollTo(0, 0); }
+function showToolsStep() {
+  $('mn-step-users').classList.add('is-off-right'); $('mn-step-users').setAttribute('aria-hidden', 'true');
+  $('mn-step-tools').classList.remove('is-off-left'); $('mn-step-tools').removeAttribute('aria-hidden');
+}
+function showUsersStep() {
+  $('mn-step-tools').classList.add('is-off-left'); $('mn-step-tools').setAttribute('aria-hidden', 'true');
+  $('mn-step-users').classList.remove('is-off-right'); $('mn-step-users').removeAttribute('aria-hidden');
+}
+async function openPortfolio() {
+  if (!readMeta()) { $('file-input').click(); return; }
+  if (!S.data) {
+    setLoading(true, 'Abriendo portafolio…');
+    await nextFrame();
+    const ok = await restoreFromCache();
+    setLoading(false);
+    if (!ok) { refreshMenu(); toast('No se encontró el archivo guardado. Cárgalo de nuevo.', 'bad'); $('file-input').click(); return; }
+  }
+  hideMenu();
+}
+
+// ═══════════════════════════ ENCABEZADO Y PESTAÑAS ═══════════════════════════
+function refreshHeader() {
+  const meta = S.meta;
+  $('hdr-file').hidden = !meta;
+  $('btn-clear').hidden = !meta;
+  if (!meta) return;
+  $('hdr-file-name').textContent = meta.name;
+  $('hdr-file-name').title = meta.name;
+  $('hdr-file-date').textContent = 'Cargado el ' + fmtStamp(meta.ts);
+}
+function renderTabs() {
+  if (!S.data) { $('tabs').innerHTML = ''; return; }
+  const count = pm => S.data.records.filter(r => r.pm === pm).length;
+  $('tabs').innerHTML = [
+    `<button class="tab" role="tab" data-action="view" data-view="general" aria-selected="${S.view === 'general'}"><i class="ti ti-layout-dashboard"></i> Vista general <span class="tab-count">${S.data.records.length}</span></button>`,
+    ...S.data.pmOrder.map(pm => `<button class="tab" role="tab" data-action="view" data-view="${esc(pm)}" aria-selected="${S.view === pm}" title="${esc((pmInfo(pm).fullName || pm) + ' · ' + pmInfo(pm).role)}"><span class="tab-dot" style="background:${pmColor(pm)}"></span>${esc(pm)} <span class="tab-count">${count(pm)}</span></button>`),
+  ].join('');
+}
+function setView(view) {
+  if (view === S.view) return;
+  S.view = view;
+  sessionStorage.setItem('cm_view', view);
+  resetFilters();
+  renderTabs();
+  renderView();
+  window.scrollTo({ top: 0 });
+}
+
+// ═══════════════════════════ VISTAS ═══════════════════════════
+const secHead = (num, title, sub) => `<div class="dsec-hd"><span class="dsec-num">${num}</span><div><div class="dsec-title">${title}</div><div class="dsec-sub">${sub}</div></div><span class="dsec-line"></span></div>`;
+const card = (id, title, sub, body, meta = '') => `<div class="card"><div class="card-hd"><div><div class="card-title">${title}</div>${sub ? `<div class="card-sub">${sub}</div>` : ''}</div>${meta ? `<span class="card-meta">${meta}</span>` : ''}</div>${body}</div>`;
+const chartBox = (id, h) => `<div class="chart-box" style="height:${h}px"><canvas id="${id}" role="img" aria-label=""></canvas></div>`;
+
+function renderEmpty() {
+  destroyCharts();
+  $('tabs').innerHTML = '';
+  $('main').innerHTML = `
+    <div class="empty">
+      <div class="empty-ico"><i class="ti ti-file-spreadsheet"></i></div>
+      <h2>Aún no hay un portafolio cargado</h2>
+      <p>Carga el archivo Excel del Portafolio Expansión TI. Quedará guardado en este equipo y se abrirá solo la próxima vez.</p>
+      <button class="btn btn-primary btn-lg" data-action="pick-file"><i class="ti ti-upload"></i> Cargar archivo Excel</button>
+      <div class="empty-note"><i class="ti ti-lock"></i> El archivo se procesa y guarda solo en este navegador; no se envía a ningún servidor.</div>
+    </div>`;
+}
+
+function renderView() {
+  destroyCharts();
+  if (!S.data) return renderEmpty();
+  const isGeneral = S.view === 'general';
+  const rows = viewRecords();
+  const meta = S.meta || {};
+  const modified = meta.modified ? `Archivo modificado el ${fmtStamp(meta.modified)}` : `Cargado el ${fmtStamp(meta.ts)}`;
+  const nPm = uniq(rows.map(r => r.pm)).length;
+  const hero = isGeneral ? `
+    <div class="hero">
+      <div>
+        <span class="eyebrow"><i class="ti ti-layout-dashboard"></i> Vista general</span>
+        <h1 class="hero-title">Portafolio Expansión TI 2026</h1>
+        <div class="hero-sub"><span><i class="ti ti-folders"></i>${rows.length} registros</span><span><i class="ti ti-users"></i>${nPm} project managers</span><span><i class="ti ti-clock"></i>${esc(modified)}</span></div>
+        <nav class="sec-index" aria-label="Secciones">
+          <button data-action="goto" data-target="sec-resumen"><span>01</span> Resumen</button>
+          <button data-action="goto" data-target="sec-inversion"><span>02</span> Inversión</button>
+          <button data-action="goto" data-target="sec-avance"><span>03</span> Avance</button>
+          <button data-action="goto" data-target="sec-detalle"><span>04</span> Detalle</button>
+          <button data-action="goto" data-target="sec-calidad"><span>05</span> Calidad</button>
+        </nav>
+      </div>
+      <div class="hero-actions">
+        <button class="btn btn-soft" data-action="print" title="Imprimir o guardar como PDF"><i class="ti ti-printer"></i> PDF</button>
+        <button class="btn btn-soft" data-action="export-all" title="Todas las pestañas de los PMs en un solo listado, con todas sus columnas"><i class="ti ti-table-export"></i> Descargar consolidado</button>
+        <button class="btn btn-primary" data-action="export" title="Descargar en formato MSR_R con los filtros aplicados"><i class="ti ti-file-download"></i> Exportar MSR_R</button>
+      </div>
+    </div>` : `
+    <div class="pm-hero" style="--pm-color:${pmColor(S.view)};--pm-ink:${inkOn(pmColor(S.view))}">
+      <div class="pm-avatar">${esc(initials(S.view))}</div>
+      <div class="pm-hero-main">
+        <span class="eyebrow"><i class="ti ${pmInfo(S.view).fullName ? 'ti-user-star' : 'ti-user'}"></i> ${esc(pmInfo(S.view).role)}</span>
+        <h1 class="hero-title" style="margin-top:8px">${esc(pmInfo(S.view).fullName || S.view)}</h1>
+        <div class="hero-sub"><span><i class="ti ti-folders"></i>${rows.length} registros</span><span><i class="ti ti-building-hospital"></i>${uniq(rows.map(r => r.unidad).filter(Boolean)).length} unidades</span><span><i class="ti ti-file-spreadsheet"></i>Hoja "${esc(rows[0] ? rows[0].sheet : S.view)}"</span></div>
+      </div>
+      <div class="hero-actions">
+        <button class="btn btn-soft" data-action="print"><i class="ti ti-printer"></i> PDF</button>
+        <button class="btn btn-primary" data-action="export" title="Descargar en formato MSR_R con los filtros aplicados"><i class="ti ti-file-download"></i> Exportar MSR_R</button>
+      </div>
+    </div>`;
+
+  const inversion = isGeneral
+    ? `<div class="grid grid-2">
+        ${card('', 'Monto aprobado TI por PM', 'Total aprobado en pesos mexicanos', chartBox('ch-monto', 230))}
+        ${card('', 'Ejecución presupuestal por PM', 'Cuánto del monto se ha erogado, comprometido o sigue disponible', chartBox('ch-ejec', 230) + legendHtml([['Erogado', C.brand700], ['Comprometido', C.brand500], ['Disponible', C.brand300]]))}
+      </div>
+      <div style="margin-top:14px">${card('', 'Composición del monto por tipo de proyecto', 'Expansión estratégica contra crecimiento (RyR)', '<div id="split-tipo"></div>')}</div>`
+    : `<div class="grid grid-2">
+        ${card('', 'Monto aprobado TI por unidad', 'Unidades con mayor inversión', chartBox('ch-monto', 260))}
+        ${card('', 'Ejecución presupuestal por unidad', 'Erogado, comprometido y disponible', chartBox('ch-ejec', 260) + legendHtml([['Erogado', C.brand700], ['Comprometido', C.brand500], ['Disponible', C.brand300]]))}
+      </div>
+      <div style="margin-top:14px">${card('', 'Composición del monto por tipo de proyecto', 'Expansión estratégica contra crecimiento (RyR)', '<div id="split-tipo"></div>')}</div>`;
+
+  const avance = `<div class="grid grid-2">
+      ${card('', 'Registros por fase', 'Fase actual del proyecto, en orden oficial', chartBox('ch-fase', 240))}
+      ${card('', 'Registros por estado', 'Estado capturado por el PM', chartBox('ch-estado', 240))}
+    </div>
+    ${isGeneral ? `<div style="margin-top:14px">${card('', 'Avance real contra planeado por PM', 'Promedio de los proyectos activos con avance capturado', chartBox('ch-avance', 250) + legendHtml([['Real', C.brand600], ['Planeado', C.plan]]))}</div>` : ''}`;
+
+  $('main').innerHTML = `
+    ${hero}
+    <div class="filters" id="filters"></div>
+    <section class="dsec" id="sec-resumen">${secHead('01', 'Resumen ejecutivo', 'Indicadores clave con los filtros aplicados')}<div id="kpis"></div><div class="alerts" id="alerts"></div></section>
+    <section class="dsec" id="sec-inversion">${secHead('02', 'Inversión y ejecución', isGeneral ? 'Distribución del monto aprobado y su ejercicio por PM' : 'Distribución del monto aprobado y su ejercicio por unidad')}${inversion}</section>
+    <section class="dsec" id="sec-avance">${secHead('03', 'Avance, fases y estados', 'Dónde está cada proyecto y cómo va contra lo planeado')}${avance}</section>
+    <section class="dsec" id="sec-detalle">${secHead('04', 'Detalle de proyectos', 'Haz clic en un proyecto para ver toda su información')}
+      <div class="card tbl-card">
+        <div class="tbl-tools">
+          <label class="search"><i class="ti ti-search"></i><span class="sr-only">Buscar</span><input id="q" type="search" placeholder="Buscar por nombre, # proyecto, RRPP o unidad" autocomplete="off"></label>
+          <span class="count-pill" id="tbl-count"></span>
+        </div>
+        <div class="tbl-scroll" id="tbl"></div>
+      </div>
+    </section>
+    <section class="dsec" id="sec-calidad">${secHead('05', 'Calidad de los datos', 'Qué se leyó del Excel y qué conviene corregir en el archivo')}<div id="quality"></div></section>`;
+  update();
+}
+const legendHtml = items => `<div class="legend">${items.map(([l, c]) => `<span><i style="background:${c}"></i>${esc(l)}</span>`).join('')}</div>`;
+
+function update() {
+  const base = viewRecords();
+  const rows = applyFilters(base);
+  renderFilters(base, rows);
+  renderKpis(rows);
+  renderAlerts(base);
+  renderCharts(rows);
+  renderTable();
+  renderQuality(base);
+}
+
+// ── Filtros ──
+function renderFilters(base, rows) {
+  const isGeneral = S.view === 'general';
+  const opts = (key, values) => values.map(v => `<option value="${esc(v)}"${S.filters[key] === v ? ' selected' : ''}>${esc(v)}</option>`).join('');
+  const sel = (key, label, values) => `<select class="fsel${S.filters[key] ? ' is-active' : ''}" data-filter="${key}" aria-label="${label}"><option value="">${label}</option>${opts(key, values)}</select>`;
+  const fases = uniq(base.map(r => r.fase || 'Sin fase')).sort((a, b) => faseNum(a) - faseNum(b) || a.localeCompare(b));
+  const estados = uniqueFold(base.map(r => r.estado || 'Sin estado')).sort((a, b) => estadoRank(a) - estadoRank(b) || a.localeCompare(b));
+  const unidades = uniq(base.map(r => r.unidad || 'Sin unidad')).sort((a, b) => a.localeCompare(b, 'es'));
+  const tipos = uniq(base.map(r => r.tipoProy || 'Sin tipo')).sort();
+  const esf = ESFUERZOS.filter(e => base.some(r => r.esfuerzo === e)).concat(uniq(base.map(r => r.esfuerzo)).filter(e => !ESFUERZOS.includes(e)));
+  const active = Object.entries(S.filters).filter(([, v]) => v);
+  const label = { pm: 'PM', esfuerzo: 'Esfuerzo', tipo: 'Tipo', fase: 'Fase', unidad: 'Unidad', estado: 'Estado', alerta: 'Alerta' };
+  $('filters').innerHTML = `
+    <span class="filters-label"><i class="ti ti-adjustments-horizontal"></i> Filtros</span>
+    ${isGeneral ? sel('pm', 'Todos los PMs', S.data.pmOrder) : ''}
+    ${sel('esfuerzo', 'Tipo de esfuerzo', esf)}
+    ${sel('tipo', 'Tipo de proyecto', tipos)}
+    ${sel('fase', 'Fase', fases)}
+    ${sel('estado', 'Estado', estados)}
+    ${sel('unidad', 'Unidad', unidades)}
+    <span class="filters-spacer"></span>
+    <span class="filters-count">${rows.length === base.length ? `${base.length} registros` : `${rows.length} de ${base.length} registros`}</span>
+    ${active.length ? `<button class="btn btn-ghost" data-action="clear-filters"><i class="ti ti-filter-off"></i> Limpiar</button>` : ''}
+    ${active.length ? `<div class="chips-active">${active.map(([k, v]) => `<button class="chip-active" data-action="drop-filter" data-key="${k}">${label[k]}: ${esc(k === 'alerta' ? ALERTS.find(a => a.key === v).label : v)} <i class="ti ti-x"></i></button>`).join('')}</div>` : ''}`;
+}
+function uniqueFold(arr) { const seen = new Set(); return arr.filter(v => { const f = fold(v); if (seen.has(f)) return false; seen.add(f); return true; }); }
+
+// ── KPIs ──
+function renderKpis(rows) {
+  const monto = sum(rows, 'monto'), erog = sum(rows, 'erogado'), comp = sum(rows, 'comprometido'), disp = sum(rows, 'disponible');
+  const byEsf = {}; rows.forEach(r => { byEsf[r.esfuerzo] = (byEsf[r.esfuerzo] || 0) + 1; });
+  const activos = rows.filter(r => r.activo);
+  const conAvance = activos.filter(r => r.pct != null && r.pctPlan != null);
+  const real = conAvance.length ? sum(conAvance, 'pct') / conAvance.length : null;
+  const plan = conAvance.length ? sum(conAvance, 'pctPlan') / conAvance.length : null;
+  const desv = real != null ? real - plan : null;
+  const desvCls = desv == null ? '' : desv >= -0.02 ? 'good' : desv >= -0.10 ? 'warn' : 'bad';
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const in90 = new Date(today); in90.setDate(in90.getDate() + 90);
+  const proximos = rows.filter(r => r.activo && r.golive.date && r.golive.date >= today && r.golive.date <= in90 && !isCierre(r)).sort((a, b) => a.golive.date - b.golive.date);
+  const unidades = uniq(rows.map(r => r.unidad).filter(Boolean));
+  const conMacti = rows.filter(r => r.activo && r.macti != null);
+  const macti = S.data.macti && S.view === 'general' && !Object.values(S.filters).some(Boolean) ? S.data.macti.value
+    : conMacti.length ? Math.round(sum(conMacti, 'macti') / conMacti.length * 10) / 10 : null;
+  const nMonto = rows.filter(r => r.monto > 0).length;
+  const pE = share(erog, monto), pC = share(comp, monto), pD = share(disp, monto);
+  const bd = ESFUERZOS.filter(e => byEsf[e]).concat(Object.keys(byEsf).filter(e => !ESFUERZOS.includes(e)))
+    .map(e => `<span class="bd"><i style="background:${ESF_COLOR[e] || C.ink3}"></i>${esc(e)} <b>${byEsf[e]}</b></span>`).join('');
+  const lastTile = macti != null
+    ? kpi('ti-checklist', 'Cumplimiento MACTI', `${macti.toLocaleString('es-MX', { maximumFractionDigits: 1 })}%`, conMacti.length ? `Promedio de <b>${conMacti.length}</b> proyectos activos con medición` : 'Documentos entregados contra requeridos', meter([[Math.min(macti, 100) / 100, macti >= 80 ? 'var(--good)' : macti >= 50 ? 'var(--warning)' : 'var(--critical)']]))
+    : kpi('ti-file-invoice', 'Con RRPP asignada', NUM.format(rows.filter(r => r.rrpp).length), `de <b>${rows.length}</b> registros`, '');
+
+  $('kpis').innerHTML = `<div class="kpis">
+    ${kpi('ti-folders', 'Registros en portafolio', NUM.format(rows.length), `<b>${activos.length}</b> proyectos activos`, `<div class="breakdown">${bd}</div>`)}
+    ${kpi('ti-coin', 'Monto aprobado TI', moneyShort(monto), `${moneyExact(monto)} · <b>${nMonto}</b> con monto`, meter([[pE, C.brand700], [pC, C.brand500], [pD, C.brand300]]) + `<div class="meter-legend"><span>Erogado ${pctFmt(pE)}</span><span>Comprometido ${pctFmt(pC)}</span><span>Disponible ${pctFmt(pD)}</span></div>`, `Monto aprobado: ${moneyExact(monto)}`)}
+    ${kpi('ti-receipt', 'Erogado', moneyShort(erog), `<b>${pctFmt(pE)}</b> del monto aprobado`, meter([[pE, C.brand700]]) + `<div class="meter-legend"><span>Comprometido</span><span>${money(comp)}</span></div>`, moneyExact(erog))}
+    ${kpi('ti-wallet', 'Disponible', moneyShort(disp), `<b>${pctFmt(pD)}</b> del monto aprobado`, meter([[pD, C.brand300]]) + `<div class="meter-legend"><span>Por ejercer</span><span>${money(disp)}</span></div>`, moneyExact(disp))}
+    ${kpi('ti-progress', 'Avance real promedio', real == null ? '—' : pctFmt(real), conAvance.length ? `Plan <b>${pctFmt(plan)}</b> · <span class="delta ${desvCls}"><i class="ti ${desv >= 0 ? 'ti-arrow-up-right' : 'ti-arrow-down-right'}"></i>${ptsFmt(desv)}</span>` : 'Sin proyectos activos con avance', conAvance.length ? meter([[real, C.brand600]]) + `<div class="meter-legend"><span>${conAvance.length} proyectos activos medidos</span><span>Plan ${pctFmt(plan)}</span></div>` : '')}
+    ${kpi('ti-rocket', 'Go Live en 90 días', NUM.format(proximos.length), proximos.length ? `Próximo: <b>${esc(proximos[0].nombre)}</b>` : 'Sin salidas a producción próximas', proximos.length ? `<div class="meter-legend"><span>${esc(DATE_FMT.format(proximos[0].golive.date))}</span><span>${esc(proximos[0].pm)}</span></div>` : '')}
+    ${kpi('ti-building-hospital', 'Unidades atendidas', NUM.format(unidades.length), `<b>${rows.filter(r => !r.unidad).length}</b> registros sin unidad`, '')}
+    ${lastTile}
+  </div>`;
+}
+function kpi(icon, label, value, sub, foot, title = '') {
+  return `<div class="kpi"${title ? ` title="${esc(title)}"` : ''}><div class="kpi-hd"><span class="kpi-ico"><i class="ti ${icon}"></i></span>${label}</div><div class="kpi-val">${value}</div><div class="kpi-sub">${sub}</div>${foot ? `<div class="kpi-foot">${foot}</div>` : ''}</div>`;
+}
+function meter(parts) {
+  return `<div class="meter">${parts.filter(([v]) => v > 0).map(([v, c]) => `<i style="width:${Math.max(0, Math.min(100, v * 100)).toFixed(1)}%;background:${c}"></i>`).join('')}</div>`;
+}
+
+// ── Alertas ──
+function renderAlerts(base) {
+  const current = S.filters.alerta;
+  S.filters.alerta = '';
+  const rows = applyFilters(base);
+  S.filters.alerta = current;
+  $('alerts').innerHTML = ALERTS.map(a => {
+    const n = rows.filter(a.test).length;
+    const pressed = S.filters.alerta === a.key;
+    return `<button class="alert st-${a.st}" data-action="alert" data-key="${a.key}" aria-pressed="${pressed}" ${!n && !pressed ? 'disabled' : ''} title="${n ? 'Filtrar estos registros' : 'Sin registros'}">
+      <span class="alert-ico"><i class="ti ${a.icon}"></i></span><span><span class="alert-n">${n}</span><span class="alert-l" style="display:block">${a.label}</span></span></button>`;
+  }).join('');
+}
+
+// ── Gráficas ──
+const reducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const barLabels = {
+  id: 'barLabels',
+  afterDatasetsDraw(chart, _args, opts) {
+    if (!opts || !opts.format) return;
+    const { ctx } = chart;
+    const horiz = chart.options.indexAxis === 'y';
+    ctx.save();
+    ctx.font = '600 11.5px "DM Sans", system-ui, sans-serif';
+    ctx.fillStyle = C.ink2;
+    const meta = chart.getDatasetMeta(chart.data.datasets.length - 1);
+    meta.data.forEach((el, i) => {
+      const total = opts.total ? opts.total(i) : chart.data.datasets[0].data[i];
+      if (!total) return;
+      const pos = el.getProps(['x', 'y'], true);
+      ctx.textAlign = horiz ? 'left' : 'center';
+      ctx.textBaseline = horiz ? 'middle' : 'bottom';
+      ctx.fillText(opts.format(total, i), horiz ? pos.x + 6 : pos.x, horiz ? pos.y : pos.y - 5);
+    });
+    ctx.restore();
+  },
+};
+function chartDefaults() {
+  if (!window.Chart || chartDefaults.done) return;
+  chartDefaults.done = true;
+  Chart.register(barLabels);
+  Chart.defaults.font.family = '"DM Sans", system-ui, sans-serif';
+  Chart.defaults.font.size = 12;
+  Chart.defaults.color = C.ink3;
+  if (reducedMotion) Chart.defaults.animation = false;
+  else Chart.defaults.animation.duration = 350;
+  Chart.defaults.plugins.legend.display = false;
+  Object.assign(Chart.defaults.plugins.tooltip, { backgroundColor: '#1C0B20', padding: 10, cornerRadius: 10, titleFont: { weight: '700' }, boxPadding: 4 });
+}
+function destroyCharts() { Object.values(S.charts).forEach(c => c.destroy()); S.charts = {}; }
+function makeChart(id, config, label) {
+  const el = $(id);
+  if (!el || !window.Chart) return;
+  el.setAttribute('aria-label', label);
+  if (el.hidden) { el.hidden = false; const msg = el.parentElement.querySelector('.empty-chart'); if (msg) msg.remove(); }
+  if (S.charts[id]) S.charts[id].destroy();
+  S.charts[id] = new Chart(el, config);
+}
+function emptyChart(id, text) {
+  const el = $(id);
+  if (S.charts[id]) { S.charts[id].destroy(); delete S.charts[id]; }
+  if (!el || el.hidden) return;
+  el.hidden = true;
+  el.insertAdjacentHTML('afterend', `<div class="empty-chart"><i class="ti ti-chart-bar-off"></i>${esc(text)}</div>`);
+}
+const axisMoney = () => ({ ticks: { callback: v => moneyShort(v), maxTicksLimit: window.innerWidth < 600 ? 4 : 6, maxRotation: 0, autoSkipPadding: 12 }, grid: { color: C.grid }, border: { display: false } });
+const axisCat ={ grid: { display: false }, border: { color: '#DDD0DE' }, ticks: { color: C.ink2 } };
+function topN(entries, n) {
+  if (entries.length <= n) return entries;
+  const head = entries.slice(0, n - 1);
+  const tail = entries.slice(n - 1);
+  const other = { label: `Otras (${tail.length})`, items: tail.flatMap(e => e.items) };
+  return [...head, other];
+}
+
+function renderCharts(rows) {
+  chartDefaults();
+  if (!window.Chart) return;
+  const isGeneral = S.view === 'general';
+  // 1 · Monto aprobado por PM o por unidad
+  let groups;
+  if (isGeneral) {
+    groups = S.data.pmOrder.map(pm => ({ label: pm, items: rows.filter(r => r.pm === pm), color: pmColor(pm) })).filter(g => g.items.length);
+  } else {
+    const byU = {};
+    rows.forEach(r => { const k = r.unidad || 'Sin unidad'; (byU[k] = byU[k] || []).push(r); });
+    groups = topN(Object.entries(byU).map(([label, items]) => ({ label, items })).sort((a, b) => sum(b.items, 'monto') - sum(a.items, 'monto')), 8)
+      .map(g => ({ ...g, color: pmColor(S.view) }));
+  }
+  const totalMonto = sum(rows, 'monto');
+  const withMonto = groups.filter(g => sum(g.items, 'monto') > 0).sort((a, b) => sum(b.items, 'monto') - sum(a.items, 'monto'));
+  if (!withMonto.length) emptyChart('ch-monto', 'Sin montos para mostrar con estos filtros');
+  else makeChart('ch-monto', {
+    type: 'bar',
+    data: { labels: withMonto.map(g => g.label), datasets: [{ data: withMonto.map(g => sum(g.items, 'monto')), backgroundColor: withMonto.map(g => g.color), borderRadius: 4, borderSkipped: false, maxBarThickness: 22 }] },
+    options: {
+      indexAxis: 'y', responsive: true, maintainAspectRatio: false, layout: { padding: { right: 70 } },
+      scales: { x: axisMoney(), y: axisCat },
+      plugins: {
+        barLabels: { format: v => moneyShort(v) },
+        tooltip: { callbacks: { label: ctx => ` ${moneyExact(ctx.raw)} · ${pctFmt(share(ctx.raw, totalMonto))} del total`, afterLabel: ctx => ` ${withMonto[ctx.dataIndex].items.length} registros` } },
+      },
+    },
+  }, `Monto aprobado TI por ${isGeneral ? 'PM' : 'unidad'}`);
+
+  // 2 · Ejecución presupuestal (apilada)
+  const ejec = withMonto;
+  if (!ejec.length) emptyChart('ch-ejec', 'Sin montos para mostrar con estos filtros');
+  else {
+    const seg = (label, key, color) => ({ label, data: ejec.map(g => sum(g.items, key)), backgroundColor: color, borderColor: '#fff', borderWidth: { right: 2 }, borderSkipped: false, maxBarThickness: 22 });
+    makeChart('ch-ejec', {
+      type: 'bar',
+      data: { labels: ejec.map(g => g.label), datasets: [seg('Erogado', 'erogado', C.brand700), seg('Comprometido', 'comprometido', C.brand500), seg('Disponible', 'disponible', C.brand300)] },
+      options: {
+        indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+        scales: { x: { ...axisMoney(), stacked: true }, y: { ...axisCat, stacked: true } },
+        plugins: { tooltip: { mode: 'index', callbacks: { label: ctx => ` ${ctx.dataset.label}: ${moneyExact(ctx.raw)} (${pctFmt(share(ctx.raw, sum(ejec[ctx.dataIndex].items, 'monto')))})`, footer: items => `Monto aprobado: ${moneyExact(sum(ejec[items[0].dataIndex].items, 'monto'))}` } } },
+      },
+    }, 'Ejecución presupuestal: erogado, comprometido y disponible');
+  }
+
+  // 3 · Composición por tipo de proyecto
+  const tipos = [['Estratégico', C.brand700], ['RyR', C.brand300], ['Sin tipo', '#DDD0DE']]
+    .map(([t, color]) => { const items = rows.filter(r => (r.tipoProy || 'Sin tipo') === t); return { t, color, n: items.length, m: sum(items, 'monto') }; })
+    .filter(x => x.n);
+  $('split-tipo').innerHTML = totalMonto > 0 ? `
+    <div class="split">${tipos.filter(x => x.m > 0).map(x => `<i style="width:${(share(x.m, totalMonto) * 100).toFixed(2)}%;background:${x.color}" title="${esc(x.t)}: ${esc(moneyExact(x.m))}"></i>`).join('')}</div>
+    <div class="split-rows">${tipos.map(x => `<div class="split-row"><i style="background:${x.color}"></i><div><b>${moneyShort(x.m)}</b><span>${esc(x.t === 'Estratégico' ? 'Expansión (Estratégico)' : x.t === 'RyR' ? 'Crecimiento (RyR)' : 'Sin tipo de proyecto')} · ${pctFmt(share(x.m, totalMonto))} · ${x.n} registros</span></div></div>`).join('')}</div>`
+    : '<div class="empty-chart"><i class="ti ti-chart-bar-off"></i>Sin montos para mostrar con estos filtros</div>';
+
+  // 4 · Fases (orden oficial)
+  const fases = {};
+  rows.forEach(r => { const k = r.fase || 'Sin fase'; fases[k] = (fases[k] || 0) + 1; });
+  const fK = Object.keys(fases).sort((a, b) => faseNum(a) - faseNum(b) || a.localeCompare(b));
+  if (!fK.length) emptyChart('ch-fase', 'Sin registros con estos filtros');
+  else makeChart('ch-fase', {
+    type: 'bar',
+    data: { labels: fK, datasets: [{ data: fK.map(k => fases[k]), backgroundColor: fK.map(k => (k === 'Sin fase' ? '#DDD0DE' : C.brand600)), borderRadius: 4, borderSkipped: false, maxBarThickness: 48 }] },
+    options: {
+      responsive: true, maintainAspectRatio: false, layout: { padding: { top: 22 } },
+      scales: { x: axisCat, y: { beginAtZero: true, ticks: { precision: 0, maxTicksLimit: 5 }, grid: { color: C.grid }, border: { display: false } } },
+      plugins: { barLabels: { format: v => v }, tooltip: { callbacks: { label: ctx => ` ${ctx.raw} registros · ${pctFmt(share(ctx.raw, rows.length))}` } } },
+    },
+  }, 'Registros por fase');
+
+  // 5 · Estados
+  const est = {};
+  rows.forEach(r => { const k = r.estado || 'Sin estado'; const f = fold(k); if (!est[f]) est[f] = { label: k, n: 0 }; est[f].n++; });
+  const eK = Object.values(est).sort((a, b) => b.n - a.n || estadoRank(a.label) - estadoRank(b.label));
+  if (!eK.length) emptyChart('ch-estado', 'Sin registros con estos filtros');
+  else {
+    $('ch-estado').parentElement.style.height = Math.max(200, eK.length * 30 + 30) + 'px';
+    makeChart('ch-estado', {
+      type: 'bar',
+      data: { labels: eK.map(e => e.label), datasets: [{ data: eK.map(e => e.n), backgroundColor: eK.map(e => (e.label === 'Sin estado' ? '#DDD0DE' : C.brand500)), borderRadius: 4, borderSkipped: false, maxBarThickness: 20 }] },
+      options: {
+        indexAxis: 'y', responsive: true, maintainAspectRatio: false, layout: { padding: { right: 36 } },
+        scales: { x: { beginAtZero: true, ticks: { precision: 0, maxTicksLimit: 5 }, grid: { color: C.grid }, border: { display: false } }, y: axisCat },
+        plugins: { barLabels: { format: v => v }, tooltip: { callbacks: { label: ctx => ` ${ctx.raw} registros · ${pctFmt(share(ctx.raw, rows.length))}` } } },
+      },
+    }, 'Registros por estado');
+  }
+
+  // 6 · Avance real vs planeado por PM
+  if (isGeneral) {
+    const av = S.data.pmOrder.map(pm => {
+      const rs = rows.filter(r => r.pm === pm && r.activo && r.pct != null && r.pctPlan != null);
+      return { pm, n: rs.length, real: rs.length ? sum(rs, 'pct') / rs.length : 0, plan: rs.length ? sum(rs, 'pctPlan') / rs.length : 0 };
+    }).filter(a => a.n);
+    if (!av.length) emptyChart('ch-avance', 'Sin proyectos activos con avance capturado');
+    else makeChart('ch-avance', {
+      type: 'bar',
+      data: { labels: av.map(a => a.pm), datasets: [
+        { label: 'Real', data: av.map(a => Math.round(a.real * 100)), backgroundColor: C.brand600, borderRadius: 4, borderSkipped: false, maxBarThickness: 34 },
+        { label: 'Planeado', data: av.map(a => Math.round(a.plan * 100)), backgroundColor: C.plan, borderRadius: 4, borderSkipped: false, maxBarThickness: 34 },
+      ] },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        scales: { x: axisCat, y: { min: 0, max: 100, ticks: { callback: v => v + '%', maxTicksLimit: 6 }, grid: { color: C.grid }, border: { display: false } } },
+        plugins: { tooltip: { mode: 'index', callbacks: { label: ctx => ` ${ctx.dataset.label}: ${ctx.raw}%`, footer: items => { const a = av[items[0].dataIndex]; return `Diferencia: ${ptsFmt(a.real - a.plan)} · ${a.n} proyectos`; } } } },
+      },
+    }, 'Avance real contra planeado por PM');
+  }
+}
+
+// ── Tabla ──
+const TABLE_COLS = [
+  { key: 'nombre', label: 'Proyecto', cls: 'col-name', sort: r => fold(r.nombre) },
+  { key: 'id', label: '# Proyecto', sort: r => r.id ? +r.id || r.id : null },
+  { key: 'pm', label: 'PM', general: true, sort: r => r.pm },
+  { key: 'unidad', label: 'Unidad', sort: r => fold(r.unidad) || null },
+  { key: 'esfuerzo', label: 'Esfuerzo', sort: r => ESFUERZOS.indexOf(r.esfuerzo) },
+  { key: 'tipoProy', label: 'Tipo', sort: r => r.tipoProy || null },
+  { key: 'fase', label: 'Fase', sort: r => (r.fase ? faseNum(r.fase) : null) },
+  { key: 'estado', label: 'Estado', sort: r => (r.estado ? estadoRank(r.estado) : null) },
+  { key: 'rrpp', label: 'RRPP', sort: r => r.rrpp || null },
+  { key: 'fechaIni', label: 'Inicio', sort: r => (r.fechaIni.date ? +r.fechaIni.date : null) },
+  { key: 'golive', label: 'Go Live', sort: r => (r.golive.date ? +r.golive.date : null) },
+  { key: 'fechaCie', label: 'Cierre', sort: r => (r.fechaCie.date ? +r.fechaCie.date : null) },
+  { key: 'monto', label: 'Monto TI', num: true, sort: r => r.monto },
+  { key: 'erogado', label: 'Erogado', num: true, sort: r => r.erogado },
+  { key: 'disponible', label: 'Disponible', num: true, sort: r => r.disponible },
+  { key: 'pct', label: '% Real', num: true, sort: r => r.pct },
+  { key: 'pctPlan', label: '% Plan', num: true, sort: r => r.pctPlan },
+  { key: 'desv', label: 'Desviación', num: true, sort: r => r.desv },
+  { key: 'macti', label: 'MACTI', num: true, macti: true, sort: r => r.macti },
+];
+function tableRows() {
+  const rows = searched(applyFilters(viewRecords()));
+  if (S.sort.key === 'order') return rows.slice().sort((a, b) => a.order - b.order);
+  const col = TABLE_COLS.find(c => c.key === S.sort.key);
+  const dir = S.sort.dir;
+  return rows.slice().sort((a, b) => {
+    const va = col.sort(a), vb = col.sort(b);
+    if (va == null && vb == null) return a.order - b.order;
+    if (va == null) return 1;
+    if (vb == null) return -1;
+    if (typeof va === 'number' && typeof vb === 'number') return (va - vb) * dir || a.order - b.order;
+    return String(va).localeCompare(String(vb), 'es') * dir || a.order - b.order;
+  });
+}
+function renderTable() {
+  const rows = tableRows();
+  const hasMacti = viewRecords().some(r => r.macti != null);
+  const cols = TABLE_COLS.filter(c => (!c.general || S.view === 'general') && (!c.macti || hasMacti));
+  $('tbl-count').textContent = `${rows.length} ${rows.length === 1 ? 'registro' : 'registros'}`;
+  if (!rows.length) {
+    $('tbl').innerHTML = `<div class="tbl-empty"><i class="ti ti-search-off"></i>No hay registros con esta búsqueda o filtros.</div>`;
+    return;
+  }
+  const head = cols.map(c => {
+    const on = S.sort.key === c.key;
+    const icon = on ? (S.sort.dir === 1 ? 'ti-sort-ascending' : 'ti-sort-descending') : 'ti-arrows-sort';
+    return `<th class="${c.cls || ''}${c.num ? ' num' : ''}"${on ? ` aria-sort="${S.sort.dir === 1 ? 'ascending' : 'descending'}"` : ''}><button data-action="sort" data-key="${c.key}">${c.label}<i class="ti ${icon}"></i></button></th>`;
+  }).join('');
+  const healthColor = { ok: 'var(--good)', warn: 'var(--warning)', bad: 'var(--critical)', none: '#DDD0DE' };
+  const healthTitle = { ok: 'En línea con el plan', warn: 'Atraso de 5 a 10 pts', bad: 'Atraso mayor a 10 pts', none: 'Sin avance capturado' };
+  const cell = (c, r) => {
+    switch (c.key) {
+      case 'nombre': return `<span class="health" style="background:${healthColor[r.health]}" title="${healthTitle[r.health]}"></span>${r.overdue ? '<i class="ti ti-alert-triangle" style="color:var(--critical);margin-right:6px" title="Go Live vencido"></i>' : ''}${esc(r.nombre)}`;
+      case 'id': return r.id ? `<span class="mono">${esc(r.id)}</span>` : '<span class="muted">—</span>';
+      case 'pm': return `<span class="who"><i style="background:${pmColor(r.pm)}"></i>${esc(r.pm)}</span>`;
+      case 'unidad': return r.unidad ? esc(r.unidad) : '<span class="muted">—</span>';
+      case 'esfuerzo': return esc(r.esfuerzo);
+      case 'tipoProy': return r.tipoProy ? esc(r.tipoProy) : '<span class="muted">—</span>';
+      case 'fase': return r.fase ? `<span class="tag t-fase">${esc(r.fase)}</span>` : '<span class="muted">—</span>';
+      case 'estado': return r.estado ? `<span class="tag">${esc(r.estado)}</span>` : '<span class="muted">—</span>';
+      case 'rrpp': return r.rrpp ? `<span class="mono">${esc(r.rrpp)}</span>` : '<span class="muted">—</span>';
+      case 'fechaIni': case 'golive': case 'fechaCie': return dateHtml(r[c.key]);
+      case 'monto': case 'erogado': case 'disponible': return r[c.key] ? `<span title="${esc(moneyExact(r[c.key]))}">${money(r[c.key])}</span>` : '<span class="muted">—</span>';
+      case 'pct': return r.pct == null ? '<span class="muted">—</span>' : `<span class="prog"><span class="prog-bar"><i style="width:${Math.min(100, r.pct * 100).toFixed(0)}%;background:${pmColor(r.pm)}"></i></span>${pctFmt(r.pct)}</span>`;
+      case 'pctPlan': return pctFmt(r.pctPlan);
+      case 'desv': return r.desv == null ? '<span class="muted">—</span>' : `<span class="delta ${r.desv >= -0.05 ? 'good' : r.desv >= -0.10 ? 'warn' : 'bad'}">${ptsFmt(r.desv)}</span>`;
+      case 'macti': return r.macti == null ? '<span class="muted">—</span>' : `${r.macti.toLocaleString('es-MX', { maximumFractionDigits: 1 })}%`;
+      default: return '';
+    }
+  };
+  $('tbl').innerHTML = `<table class="tbl"><thead><tr>${head}</tr></thead><tbody>${rows.map(r =>
+    `<tr data-uid="${r.uid}" tabindex="0" class="${r.overdue ? 'is-overdue' : ''}">${cols.map(c => `<td class="${c.cls || ''}${c.num ? ' num' : ''}">${cell(c, r)}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+}
+
+// ── Calidad de datos ──
+function renderQuality(base) {
+  const d = S.data;
+  const inView = new Set(base.map(r => r.uid));
+  const sheets = S.view === 'general' ? d.sheets : d.sheets.filter(s => s.pm === S.view);
+  const issues = d.issues.map(i => ({ ...i, items: i.items.filter(x => inView.has(x.uid)) })).filter(i => i.items.length);
+  const read = sheets.filter(s => s.status === 'ok' || s.status === 'auto');
+  const nObs = issues.filter(i => i.level !== 'info').reduce((s, i) => s + i.items.length, 0);
+  const statusTag = s => ({
+    ok: '<span class="tag t-ok"><i class="ti ti-check"></i>Leída</span>',
+    auto: '<span class="tag t-warn"><i class="ti ti-plus"></i>Agregada automáticamente</span>',
+    ignored: '<span class="tag">No se usa</span>',
+    missing: '<span class="tag t-bad"><i class="ti ti-alert-triangle"></i>No encontrada</span>',
+    'no-header': '<span class="tag t-bad"><i class="ti ti-alert-triangle"></i>Sin encabezados</span>',
+  }[s.status]);
+  const levelStyle = { bad: 'background:var(--critical-bg);color:var(--critical-ink)', warn: 'background:var(--warning-bg);color:var(--warning-ink)', info: 'background:var(--brand-100);color:var(--brand-700)' };
+  const levelIcon = { bad: 'ti-alert-octagon', warn: 'ti-alert-triangle', info: 'ti-info-circle' };
+  const skipped = sheets.flatMap(s => (s.skipped || []).map(x => `${s.sheet} · ${x}`));
+  const missingCols = sheets.filter(s => s.missingCols && s.missingCols.length);
+  const colNames = { tipo: 'Tipo de esfuerzo', monto: 'Monto TI', fase: 'Fase actual', estado: 'Estado', unidad: 'Unidades a desplegar', pct: '% real' };
+
+  $('quality').innerHTML = card('', 'Lectura del archivo', `${esc(S.meta ? S.meta.name : '')}`, `
+    <div class="dq-summary">
+      <div class="dq-stat"><b>${read.length}</b><span>hojas de PM leídas</span></div>
+      <div class="dq-stat"><b>${NUM.format(base.length)}</b><span>registros con nombre de proyecto</span></div>
+      <div class="dq-stat"><b>${money(sum(base, 'monto'))}</b><span>Monto TI leído (sin filtros)</span></div>
+      <div class="dq-stat"><b>${nObs}</b><span>observaciones por revisar</span></div>
+    </div>
+    <div style="overflow:auto"><table class="dq-sheets"><thead><tr><th>Hoja del Excel</th><th>Uso en el dashboard</th><th class="num">Registros</th><th class="num">Monto TI</th></tr></thead><tbody>
+      ${sheets.map(s => `<tr><td><b>${esc(s.sheet)}</b>${s.reason ? `<div class="muted" style="font-size:12px;color:var(--ink-3)">${esc(s.reason)}</div>` : ''}</td><td>${statusTag(s)}</td><td class="num">${s.rows || '—'}</td><td class="num">${s.monto ? money(s.monto) : '—'}</td></tr>`).join('')}
+    </tbody></table></div>
+    ${missingCols.length ? `<div class="dq-list" style="margin-bottom:10px">${missingCols.map(s => `<div class="dq-ok" style="background:var(--warning-bg);color:var(--warning-ink)"><i class="ti ti-columns-off"></i>Hoja "${esc(s.sheet)}": no tiene la columna ${s.missingCols.map(k => `"${colNames[k]}"`).join(', ')}.</div>`).join('')}</div>` : ''}
+    ${skipped.length ? `<div class="dq-list" style="margin-bottom:10px"><div class="dq-ok" style="background:var(--brand-100);color:var(--brand-700)"><i class="ti ti-filter-minus"></i>${skipped.length} filas de totales omitidas para no duplicar montos: ${esc(skipped.join(' · '))}</div></div>` : ''}
+    <div class="dq-list">
+      ${issues.length ? issues.map(i => `
+        <details class="dq-item"${i.level === 'bad' ? ' open' : ''}>
+          <summary><span class="dq-n" style="${levelStyle[i.level]}">${i.items.length}</span><i class="ti ${levelIcon[i.level]}" style="color:var(--ink-3)"></i>${esc(i.label)}<i class="ti ti-chevron-down"></i></summary>
+          <ul>${i.items.map(x => `<li><b>${esc(x.nombre)}</b> · ${esc(x.sheet)}, fila ${x.row}${x.detail ? ` · ${esc(x.detail)}` : ''}</li>`).join('')}</ul>
+        </details>`).join('') : '<div class="dq-ok"><i class="ti ti-circle-check"></i>Sin observaciones: todos los registros tienen la información clave capturada.</div>'}
+    </div>`);
+}
+
+// ── Panel de detalle ──
+function openDrawer(uid) {
+  const r = S.data.records.find(x => x.uid === uid);
+  if (!r) return;
+  const row = (k, v) => `<dt>${k}</dt><dd>${v === '' || v == null ? '<span class="muted" style="color:var(--ink-3);font-weight:400">—</span>' : v}</dd>`;
+  const t = v => (v ? esc(v) : '');
+  const d = x => (x.kind === 'vacio' ? '' : esc(dateText(x)));
+  const drawer = $('drawer');
+  drawer.innerHTML = `
+    <div class="drawer-hd">
+      <div style="flex:1;min-width:0">
+        <span class="who" style="font-size:13px;font-weight:700;color:var(--ink-2)"><i style="background:${pmColor(r.pm)}"></i>${esc(r.pm)} · ${esc(r.esfuerzo)}</span>
+        <h2 id="drawer-title">${esc(r.nombre)}</h2>
+      </div>
+      <button class="btn btn-ghost btn-icon" data-action="close-drawer" aria-label="Cerrar"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="drawer-body">
+      <div class="drawer-sec">Identificación</div>
+      <dl class="dl">${row('# Proyecto', r.id ? `<span class="mono">${t(r.id)}</span>` : '')}${row('RRPP', t(r.rrpp))}${row('Dirección solicitante', t(r.direccion))}${row('Unidad', t(r.unidad))}${row('Tipo de proyecto', t(r.tipoProy))}${row('Tipo de esfuerzo', t(r.tipoRaw))}${r.tamano ? row('Tamaño', t(r.tamano)) : ''}${r.clasif ? row('Clasificación', t(r.clasif)) : ''}${r.prioridad ? row('Prioridad', t(r.prioridad)) : ''}</dl>
+      <div class="drawer-sec">Estatus y avance</div>
+      <dl class="dl">${row('Fase', t(r.fase))}${row('Estado', t(r.estado))}${row('% real', r.pct == null ? '' : pctFmt(r.pct))}${row('% planeado', r.pctPlan == null ? '' : pctFmt(r.pctPlan))}${row('Desviación', r.desv == null ? '' : `<span class="delta ${r.desv >= -0.05 ? 'good' : r.desv >= -0.10 ? 'warn' : 'bad'}">${ptsFmt(r.desv)}</span>`)}${r.macti != null ? row('MACTI', r.macti.toLocaleString('es-MX', { maximumFractionDigits: 1 }) + '%') : ''}</dl>
+      <div class="drawer-sec">Fechas</div>
+      <dl class="dl">${row('Inicio', d(r.fechaIni))}${row('Go Live', d(r.golive) + (r.overdue ? ' <span class="tag t-bad">Vencido</span>' : ''))}${row('Cierre', d(r.fechaCie))}</dl>
+      <div class="drawer-sec">Presupuesto</div>
+      <dl class="dl">${row('Monto aprobado TI', r.monto ? moneyExact(r.monto) : '')}${row('Erogado', r.erogado ? `${moneyExact(r.erogado)} · ${pctFmt(share(r.erogado, r.monto))}` : '')}${row('Comprometido', r.comprometido ? moneyExact(r.comprometido) : '')}${row('Disponible', r.disponible ? moneyExact(r.disponible) : '')}</dl>
+      <div class="drawer-sec">Responsables</div>
+      <dl class="dl">${row('Líder TI', t(r.lider))}${row('PM / Gestor', t(r.gestor))}${row('Sponsor', t(r.sponsor))}${row('Líder de proyecto', t(r.liderProy))}</dl>
+      <div class="drawer-sec">Detalle</div>
+      <dl class="dl">${row('Ruta crítica', t(r.ruta))}${row('Tipo de servicio', t(r.tipoServ))}${row('Aplicativo core', t(r.core))}${row('Descripción', t(r.desc))}</dl>
+      <div class="drawer-sec">Origen del dato</div>
+      <dl class="dl">${row('Hoja del Excel', t(r.sheet))}${row('Fila', String(r.row))}</dl>
+    </div>`;
+  drawer.setAttribute('aria-hidden', 'false');
+  document.body.classList.add('drawer-open');
+  drawer.querySelector('[data-action="close-drawer"]').focus();
+  S.lastFocus = uid;
+}
+function closeDrawer() {
+  if (!document.body.classList.contains('drawer-open')) return;
+  document.body.classList.remove('drawer-open');
+  $('drawer').setAttribute('aria-hidden', 'true');
+  const tr = S.lastFocus && document.querySelector(`tr[data-uid="${S.lastFocus}"]`);
+  if (tr) tr.focus();
+}
+
+// ═══════════════════════════ EXPORTAR ═══════════════════════════
+function loadScript(src) {
+  return new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = src; s.onload = resolve; s.onerror = () => reject(new Error('No se pudo cargar ' + src));
+    document.head.appendChild(s);
+  });
+}
+// Junta todas las pestañas de PM en un solo listado con TODAS sus columnas y valores originales.
+// Las columnas que solo cambian de nombre entre pestañas (p. ej. "RPP" / "RRPP") se unifican.
+const CONSOLIDADO_LABEL = {
+  tipo: 'Tipo de esfuerzo', rrpp: 'RRPP', id: '# Proyecto', nombre: 'Nombre del proyecto', direccion: 'Dirección solicitante',
+  tipoProy: 'Tipo de proyecto', tamano: 'Tamaño del proyecto', fase: 'Fase actual del proyecto', fechaIni: 'Fecha de inicio',
+  golive: 'Fecha Go Live', fechaCie: 'Fecha de cierre', unidad: 'Unidades a desplegar', pct: '% Real', pctPlan: '% Planeado',
+  monto: 'Monto Aprobado TI', erogado: 'Presupuesto erogado', comprometido: 'Presupuesto comprometido', disponible: 'Presupuesto disponible',
+  clasif: 'Clasificación del proyecto', prioridad: 'Prioridad', estado: 'Estado', lider: 'Líder TI', gestor: 'PM / Gestor de proyecto asignado',
+  sponsor: 'Sponsor', liderProy: 'Líder de proyecto', ruta: 'Ruta crítica', tipoServ: 'Tipo de servicio', core: 'Aplicativo core', macti: '% MACTI',
+};
+// Orden de columnas: el mismo de las pestañas del Excel. Se recorren en orden y cada columna
+// nueva se inserta justo después de la columna que la antecede en su pestaña.
+function consolidadoColumns(wb, sheets, records) {
+  const aliasToKey = new Map();
+  Object.keys(CONSOLIDADO_LABEL).forEach(k => COLS[k].forEach(a => aliasToKey.set(a, k)));
+  const groups = new Map();
+  const perSheet = {};
+  const order = [];
+  sheets.forEach(s => {
+    const ws = wb.Sheets[s.sheet];
+    const raw = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '', raw: true, blankrows: true });
+    const hdr = raw.slice(0, 40).findIndex(row => row.some(c => fold(c) === 'nombre del proyecto'));
+    const rowsOfSheet = records.filter(r => r.sheet === s.sheet).map(r => r.row);
+    const width = ws['!ref'] ? XLSX.utils.decode_range(ws['!ref']).e.c + 1 : raw[hdr].length;
+    const seen = {};
+    let prev = null;
+    perSheet[s.sheet] = [];
+    for (let c = 0; c < width; c++) {
+      const h = raw[hdr][c];
+      let key, label;
+      if (h === '' || h == null) {
+        // Columna sin encabezado: solo se incluye si trae algún dato en los proyectos
+        const hasData = rowsOfSheet.some(row => { const cell = ws[XLSX.utils.encode_cell({ r: row - 1, c })]; return cell && cell.v !== '' && cell.v != null; });
+        if (!hasData) continue;
+        label = `Sin encabezado (${s.sheet}, columna ${XLSX.utils.encode_col(c)})`;
+        key = 'x:' + s.sheet + ':' + c;
+      } else {
+        label = typeof h === 'number' && h > 20000 && h < 80000 ? DATE_FMT.format(toDate(h).date) : clean(h);
+        const f = fold(label);
+        seen[f] = (seen[f] || 0) + 1;
+        const canon = seen[f] === 1 ? aliasToKey.get(f) : null;
+        key = canon ? 'k:' + canon : 'h:' + f + (seen[f] > 1 ? '\u0001' + seen[f] : '');
       }
-      try { const d=new Date(v); if(!isNaN(d.getTime())&&d.getFullYear()>1970) return d.toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'}); } catch(e){}
-      return s;
-    };
-
-    const SEC = [
-      {label:'Información del Proyecto', bg:P1,  sub:P2,  start:0,  end:10},
-      {label:'Presupuesto',              bg:DB1, sub:DB2, start:11, end:17},
-    ];
-    const COLS = [
-      {label:'# Proyecto',          sec:0, v:d=>d._id||'',        w:14},
-      {label:'Nombre del Proyecto', sec:0, v:d=>d._nombre||'',    w:42},
-      {label:'PM',                  sec:0, v:d=>d.pm||'',         w:14},
-      {label:'Unidad',              sec:0, v:d=>d._unidad||'',    w:22},
-      {label:'Tipo',                sec:0, v:d=>d._tipo_proy||'', w:16},
-      {label:'RRPP',                sec:0, v:d=>d._rrpp||'',      w:10},
-      {label:'Fase',                sec:0, v:d=>d._fase||'',      w:18},
-      {label:'Estado',              sec:0, v:d=>d._estado||'',    w:20},
-      {label:'Fecha Inicio',        sec:0, v:d=>fmtDate(d._fecha_ini),     w:16},
-      {label:'Fecha Cierre',        sec:0, v:d=>fmtDate(d._fecha_cie),     w:16},
-      {label:'Fecha Go Live',       sec:0, v:d=>fmtDate(d._fecha_golive),  w:16},
-      {label:'Monto Aprobado TI',   sec:1, v:d=>d._monto||0,        num:true, w:20},
-      {label:'Erogado',             sec:1, v:d=>d._erogado||0,      num:true, w:16},
-      {label:'Disponible',          sec:1, v:d=>d._disponible||0,   num:true, w:16},
-      {label:'% Real',              sec:1, v:d=>d._pct!=null?Math.round(d._pct*100)+'%':'',                                                        center:true, w:10},
-      {label:'% Plan',              sec:1, v:d=>d._pct_plan!=null?Math.round(d._pct_plan*100)+'%':'',                                              center:true, w:10},
-      {label:'Desviación',          sec:1, v:d=>d._desviacion!=null?(Math.round(d._desviacion*100)>0?'+':'')+Math.round(d._desviacion*100)+'%':'', center:true, w:12},
-      {label:'% MACTI',             sec:1, v:d=>d._macti!=null?d._macti.toFixed(2)+'%':'',                                                         center:true, w:10},
-    ];
-
-    const thinBorder = {top:{style:'thin'},bottom:{style:'thin'},left:{style:'thin'},right:{style:'thin'}};
-
-    const wb = new ExcelJS.Workbook();
-    const ws = wb.addWorksheet('Portafolio');
-    ws.columns = COLS.map(col => ({width: col.w || 16}));
-
-    // Fila 1 — encabezados de sección
-    const r1 = ws.addRow(COLS.map((col, i) => SEC.find(s=>s.start===i)?.label || ''));
-    r1.height = 30;
-    r1.eachCell({includeEmpty:true}, (cell, cn) => {
-      const sec = SEC.find(s => (cn-1) >= s.start && (cn-1) <= s.end) || SEC[0];
-      cell.fill      = {type:'pattern', pattern:'solid', fgColor:{argb:sec.bg}};
-      cell.font      = {name:'Calibri', bold:true, size:12, color:{argb:'FFFFFFFF'}};
-      cell.alignment = {horizontal:'center', vertical:'middle', wrapText:true};
-      cell.border    = thinBorder;
+      if (!groups.has(key)) {
+        groups.set(key, { key, canon: key.startsWith('k:') ? key.slice(2) : null, spellings: new Map(), dup: key.includes('\u0001') ? key.split('\u0001')[1] : null });
+        const at = prev ? order.indexOf(prev) + 1 : 0;
+        order.splice(at, 0, key);
+      }
+      const g = groups.get(key);
+      g.spellings.set(label, (g.spellings.get(label) || 0) + 1);
+      perSheet[s.sheet].push({ col: c, key });
+      prev = key;
+    }
+  });
+  // Nombre de cada columna: la forma en que lo escriben la mayoría de las pestañas
+  const cols = order.map(k => {
+    const g = groups.get(k);
+    const best = [...g.spellings.entries()].sort((a, b) => b[1] - a[1])[0][0];
+    return { ...g, label: best + (g.dup ? ` (${g.dup})` : '') };
+  });
+  return { cols, perSheet };
+}
+// Columnas que no vienen en el Excel pero conviene tener a la mano (calculadas por el dashboard)
+const CONSOLIDADO_EXTRA = [
+  { h: 'Tipo de esfuerzo (normalizado)', v: r => r.esfuerzo },
+  { h: 'Desviación vs plan', v: r => r.desv, fmt: '+0%;-0%;0%' },
+  { h: 'Estado de avance', v: r => ({ ok: 'En línea con el plan', warn: 'Atraso de 5 a 10 pts', bad: 'Atraso mayor a 10 pts', none: 'Sin avance capturado' }[r.health]) },
+  { h: '% Ejercido del monto', v: r => (r.monto > 0 ? r.erogado / r.monto : null), fmt: '0%' },
+  { h: 'Go Live vencido', v: r => (r.overdue ? 'Sí' : 'No') },
+  { h: 'Días para Go Live', v: r => { if (!r.golive.date || !r.activo) return null; const t = new Date(); t.setHours(0, 0, 0, 0); return Math.round((r.golive.date - t) / 864e5); }, fmt: '0' },
+];
+function consolidadoValue(ws, row, col) {
+  const cell = ws[XLSX.utils.encode_cell({ r: row - 1, c: col })];
+  if (!cell || cell.v === '' || cell.v == null) return { v: null };
+  if (cell.t === 'd') return { v: cell.v, date: true };
+  if (cell.t === 'n' && cell.z && XLSX.SSF.is_date(cell.z)) { const dt = toDate(cell.v).date; if (dt) return { v: dt, date: true }; }
+  if (cell.t === 'n') return { v: cell.v, fmt: cell.z && cell.z !== 'General' ? cell.z : null };
+  if (cell.t === 'b') return { v: cell.v ? 'Sí' : 'No' };
+  return { v: cleanMulti(cell.v) };
+}
+async function exportConsolidado() {
+  const d = S.data;
+  if (!d || !d.wb) return toast('Vuelve a cargar el Excel para generar el consolidado.', 'bad');
+  const sheets = d.sheets.filter(s => (s.status === 'ok' || s.status === 'auto') && s.rows > 0);
+  setLoading(true, 'Generando consolidado…');
+  try {
+    if (!window.ExcelJS) await loadScript('vendor/exceljs.min.js');
+    const records = d.records.slice().sort((a, b) => a.order - b.order);
+    const { cols, perSheet } = consolidadoColumns(d.wb, sheets, records);
+    const out = new ExcelJS.Workbook();
+    out.creator = 'GSEE Proyectos TI';
+    out.created = new Date();
+    const nameIdx = cols.findIndex(c => c.canon === 'nombre');
+    const ws = out.addWorksheet('Consolidado', { views: [{ state: 'frozen', ySplit: 1, xSplit: nameIdx + 2 }] });
+    const header = ['PM', ...cols.map(c => c.label), ...CONSOLIDADO_EXTRA.map(x => x.h), 'Hoja origen', 'Fila origen'];
+    const firstExtra = cols.length + 2;
+    const widths = header.map(h => Math.min(28, Math.max(10, String(h).length + 2)));
+    const hr = ws.addRow(header);
+    hr.height = 32;
+    hr.eachCell((cell, i) => {
+      const extra = i >= firstExtra && i < firstExtra + CONSOLIDADO_EXTRA.length;
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: extra ? 'FF1F3864' : 'FF5C2B60' } };
+      if (extra) cell.note = 'Columna calculada por el dashboard (no viene en el Excel original)';
+      cell.font = { name: 'Calibri', bold: true, size: 10, color: { argb: 'FFFFFFFF' } };
+      cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+      cell.border = { right: { style: 'thin', color: { argb: 'FF803F85' } } };
     });
-    SEC.forEach(sec => { ws.mergeCells(1, sec.start+1, 1, sec.end+1); });
-
-    // Fila 2 — nombres de columna
-    const r2 = ws.addRow(COLS.map(col => col.label));
-    r2.height = 26;
-    r2.eachCell({includeEmpty:true}, (cell, cn) => {
-      const sec = SEC.find(s => (cn-1) >= s.start && (cn-1) <= s.end) || SEC[0];
-      cell.fill      = {type:'pattern', pattern:'solid', fgColor:{argb:sec.sub}};
-      cell.font      = {name:'Calibri', bold:true, size:10, color:{argb:'FFFFFFFF'}};
-      cell.alignment = {horizontal:'center', vertical:'middle', wrapText:true};
-      cell.border    = thinBorder;
-    });
-
-    // Filas de datos
-    FILTERED.forEach(d => {
-      const dataRow = ws.addRow(COLS.map(col => col.v(d)));
-      dataRow.height = 18;
-      dataRow.eachCell({includeEmpty:true}, (cell, cn) => {
-        const col = COLS[cn-1];
-        cell.font   = {name:'Calibri', size:10};
-        cell.border = thinBorder;
-        if (col.num) {
-          cell.numFmt    = '"$"#,##0.00';
-          cell.alignment = {horizontal:'right', vertical:'middle'};
-        } else if (col.center) {
-          cell.alignment = {horizontal:'center', vertical:'middle'};
-        } else {
-          cell.alignment = {horizontal:'left', vertical:'middle'};
-        }
+    const thin = { style: 'thin', color: { argb: 'FFDDD0DE' } };
+    records.forEach(r => {
+      const src = d.wb.Sheets[r.sheet];
+      const byKey = {};
+      (perSheet[r.sheet] || []).forEach(({ col, key }) => { byKey[key] = consolidadoValue(src, r.row, col); });
+      const extras = CONSOLIDADO_EXTRA.map(x => { const v = x.v(r); return { v: v == null ? null : v, fmt: x.fmt }; });
+      const vals = [{ v: r.pm }, ...cols.map(c => byKey[c.key] || { v: null }), ...extras, { v: r.sheet }, { v: r.row }];
+      const row = ws.addRow(vals.map(x => x.v));
+      vals.forEach((x, i) => {
+        const cell = row.getCell(i + 1);
+        cell.font = { name: 'Calibri', size: 10 };
+        cell.border = { bottom: thin, right: thin };
+        cell.alignment = { vertical: 'top', wrapText: typeof x.v === 'string' && x.v.length > 40 };
+        if (x.date) cell.numFmt = 'dd/mm/yyyy';
+        else if (x.fmt) cell.numFmt = x.fmt;
+        const len = x.v == null ? 0 : x.date ? 10 : String(x.v).length;
+        widths[i] = Math.min(50, Math.max(widths[i], len + 2));
       });
     });
+    ws.columns.forEach((c, i) => { c.width = widths[i]; });
+    ws.autoFilter = { from: { row: 1, column: 1 }, to: { row: records.length + 1, column: header.length } };
 
-    ws.views = [{state:'frozen', ySplit:2}];
+    const rs = out.addWorksheet('Resumen');
+    rs.columns = [{ width: 34 }, { width: 18 }, { width: 22 }, { width: 50 }];
+    rs.addRow(['Consolidado del Portafolio Expansión TI 2026']).font = { name: 'Calibri', size: 14, bold: true, color: { argb: 'FF5C2B60' } };
+    rs.addRow([`Archivo de origen: ${S.meta ? S.meta.name : ''} · Generado el ${fmtStamp(Date.now())}`]).font = { name: 'Calibri', size: 10, italic: true, color: { argb: 'FF85748A' } };
+    rs.addRow([]);
+    const th = rs.addRow(['Pestaña (PM)', 'Registros', 'Monto Aprobado TI']);
+    th.eachCell(c => { c.font = { name: 'Calibri', bold: true, size: 10, color: { argb: 'FFFFFFFF' } }; c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF5C2B60' } }; });
+    sheets.forEach(s => { const row = rs.addRow([s.sheet, s.rows, s.monto]); row.getCell(3).numFmt = '"$"#,##0.00'; });
+    const tot = rs.addRow(['Total', records.length, sum(records, 'monto')]);
+    tot.font = { name: 'Calibri', bold: true, size: 10 };
+    tot.getCell(3).numFmt = '"$"#,##0.00';
+    const merged = cols.filter(c => c.spellings.size > 1);
+    if (merged.length) {
+      rs.addRow([]);
+      rs.addRow(['Columnas unificadas (mismo dato con distinto nombre en cada pestaña)']).font = { name: 'Calibri', bold: true, size: 10, color: { argb: 'FF5C2B60' } };
+      merged.forEach(c => rs.addRow([c.label, '', '', [...c.spellings.keys()].join(' · ')]).font = { name: 'Calibri', size: 10 });
+    }
+    rs.addRow([]);
+    rs.addRow(['Columnas calculadas por el dashboard (encabezado azul)']).font = { name: 'Calibri', bold: true, size: 10, color: { argb: 'FF1F3864' } };
+    CONSOLIDADO_EXTRA.forEach(x => rs.addRow([x.h, '', '', 'No viene en el Excel original; se calcula con los datos de cada proyecto']).font = { name: 'Calibri', size: 10 });
+    const headerless = cols.filter(c => c.key.startsWith('x:'));
+    if (headerless.length) {
+      rs.addRow([]);
+      rs.addRow(['Columnas con datos pero sin encabezado en el Excel (se incluyeron para no perder información)']).font = { name: 'Calibri', bold: true, size: 10, color: { argb: 'FF9A3B12' } };
+      headerless.forEach(c => rs.addRow([c.label]).font = { name: 'Calibri', size: 10 });
+    }
+    const ignored = d.sheets.filter(s => s.status === 'ignored');
+    if (ignored.length) {
+      rs.addRow([]);
+      rs.addRow(['Pestañas no incluidas']).font = { name: 'Calibri', bold: true, size: 10, color: { argb: 'FF5C2B60' } };
+      ignored.forEach(s => rs.addRow([s.sheet, '', '', s.reason]).font = { name: 'Calibri', size: 10 });
+    }
 
-    const buffer = await wb.xlsx.writeBuffer();
-    const blob = new Blob([buffer], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
-    const url = URL.createObjectURL(blob);
+    const buf = await out.xlsx.writeBuffer();
+    const url = URL.createObjectURL(new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
+    const a = document.createElement('a');
+    const now = new Date();
+    a.href = url;
+    a.download = `Portafolio_TI_Consolidado_${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}.xlsx`;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+    toast(`Consolidado generado: ${records.length} registros de ${sheets.length} pestañas, ${header.length} columnas.`);
+  } catch (e) {
+    console.error(e);
+    toast('No se pudo generar el consolidado.', 'bad');
+  } finally {
+    setLoading(false);
+  }
+}
+
+async function exportExcel() {
+  const rows = tableRows();
+  if (!rows.length) return toast('No hay registros para exportar con los filtros actuales.', 'bad');
+  setLoading(true, 'Generando Excel…');
+  try {
+    if (!window.ExcelJS) await loadScript('vendor/exceljs.min.js');
+    const wb = new ExcelJS.Workbook();
+    wb.creator = 'GSEE Proyectos TI';
+    wb.created = new Date();
+    // Formato MSR_R: fila 1 = secciones combinadas, fila 2 = encabezados, datos desde la fila 3
+    const SECTIONS = [
+      { label: 'Información del Proyecto', from: 1, to: 11, band: 'FF5C2B60', head: 'FF803F85' },
+      { label: 'Presupuesto', from: 12, to: 18, band: 'FF1F3864', head: 'FF2E4E8A' },
+    ];
+    const asDate = x => (x.date ? x.date : x.text || null);
+    const COLS = [
+      { h: '# Proyecto', w: 14, v: r => r.id },
+      { h: 'Nombre del Proyecto', w: 42, v: r => r.nombre },
+      { h: 'PM', w: 14, v: r => r.pm },
+      { h: 'Unidad', w: 22, v: r => r.unidad },
+      { h: 'Tipo', w: 16, v: r => r.tipoProy },
+      { h: 'RRPP', w: 10, v: r => r.rrpp },
+      { h: 'Fase', w: 18, v: r => r.fase },
+      { h: 'Estado', w: 20, v: r => r.estado },
+      { h: 'Fecha Inicio', w: 16, v: r => asDate(r.fechaIni), kind: 'date' },
+      { h: 'Fecha Cierre', w: 16, v: r => asDate(r.fechaCie), kind: 'date' },
+      { h: 'Fecha Go Live', w: 16, v: r => asDate(r.golive), kind: 'date' },
+      { h: 'Monto Aprobado TI', w: 20, v: r => r.monto, kind: 'money' },
+      { h: 'Erogado', w: 16, v: r => r.erogado, kind: 'money' },
+      { h: 'Disponible', w: 16, v: r => r.disponible, kind: 'money' },
+      { h: '% Real', w: 10, v: r => r.pct, kind: 'pct', fmt: '0%' },
+      { h: '% Plan', w: 10, v: r => r.pctPlan, kind: 'pct', fmt: '0%' },
+      { h: 'Desviación', w: 12, v: r => r.desv, kind: 'pct', fmt: '+0%;-0%;0%' },
+      { h: '% MACTI', w: 10, v: r => (r.macti == null ? null : r.macti / 100), kind: 'pct', fmt: '0.00%' },
+    ];
+    const thin = { style: 'thin', color: { argb: 'FFBFBFBF' } };
+    const border = { top: thin, bottom: thin, left: thin, right: thin };
+    const sectionOf = i => SECTIONS.find(s => i >= s.from && i <= s.to);
+
+    const ws = wb.addWorksheet('Portafolio', { views: [{ state: 'frozen', xSplit: 0, ySplit: 2 }] });
+    ws.columns = COLS.map(c => ({ width: c.w }));
+    const r1 = ws.addRow(COLS.map((_, i) => sectionOf(i + 1).label));
+    r1.height = 30;
+    const r2 = ws.addRow(COLS.map(c => c.h));
+    r2.height = 26;
+    [r1, r2].forEach((row, k) => row.eachCell((cell, i) => {
+      const s = sectionOf(i);
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: k ? s.head : s.band } };
+      cell.font = { name: 'Calibri', bold: true, size: k ? 10 : 12, color: { argb: 'FFFFFFFF' } };
+      cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+      cell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
+    }));
+    SECTIONS.forEach(s => ws.mergeCells(1, s.from, 1, s.to));
+
+    rows.forEach(r => {
+      const row = ws.addRow(COLS.map(c => { const v = c.v(r); return v === '' || v === undefined ? null : v; }));
+      row.height = 18;
+      for (let i = 1; i <= COLS.length; i++) {
+        const c = COLS[i - 1], cell = row.getCell(i);
+        cell.font = { name: 'Calibri', size: 10 };
+        cell.border = border;
+        cell.alignment = { vertical: 'middle', horizontal: c.kind === 'money' ? 'right' : c.kind === 'pct' ? 'center' : 'left' };
+        if (c.kind === 'money') cell.numFmt = '"$"#,##0.00';
+        if (c.kind === 'pct') cell.numFmt = c.fmt;
+        if (c.kind === 'date' && cell.value instanceof Date) cell.numFmt = '[$-es-MX]dd mmm yyyy';
+      }
+    });
+    const last = rows.length + 2;
+    ws.autoFilter = { from: { row: 2, column: 1 }, to: { row: last, column: COLS.length } };
+
+    // Hoja de resumen: totales, filtros y origen (separada para no alterar el formato MSR_R)
+    const rs = wb.addWorksheet('Resumen');
+    rs.columns = [{ width: 30 }, { width: 62 }];
+    const active = Object.entries(S.filters).filter(([, v]) => v).map(([k, v]) => `${{ pm: 'PM', esfuerzo: 'Esfuerzo', tipo: 'Tipo', fase: 'Fase', unidad: 'Unidad', estado: 'Estado', alerta: 'Alerta' }[k]}: ${k === 'alerta' ? ALERTS.find(a => a.key === v).label : v}`);
+    const t = rs.addRow(['Portafolio Expansión TI 2026 · GSEE Proyectos TI']);
+    t.font = { name: 'Calibri', size: 14, bold: true, color: { argb: 'FF5C2B60' } };
+    rs.addRow([]);
+    const meta = [
+      ['Vista', S.view === 'general' ? 'Vista general (todos los PMs)' : `${pmInfo(S.view).fullName || S.view} · ${pmInfo(S.view).role}`],
+      ['Filtros aplicados', active.length ? active.join(' · ') : 'Ninguno'],
+      ['Búsqueda', S.q || 'Ninguna'],
+      ['Archivo de origen', S.meta ? S.meta.name : ''],
+      ['Generado el', new Date()],
+      ['Registros exportados', rows.length],
+      ['Monto Aprobado TI', { formula: `SUM(Portafolio!L3:L${last})`, result: sum(rows, 'monto') }],
+      ['Erogado', { formula: `SUM(Portafolio!M3:M${last})`, result: sum(rows, 'erogado') }],
+      ['Comprometido', sum(rows, 'comprometido')],
+      ['Disponible', { formula: `SUM(Portafolio!N3:N${last})`, result: sum(rows, 'disponible') }],
+    ];
+    meta.forEach(([k, v]) => {
+      const row = rs.addRow([k, v]);
+      row.getCell(1).font = { name: 'Calibri', size: 10, bold: true, color: { argb: 'FF5B4A5D' } };
+      row.getCell(2).font = { name: 'Calibri', size: 10 };
+      row.getCell(2).alignment = { horizontal: 'left', wrapText: true };
+      if (/Monto|Erogado|Comprometido|Disponible/.test(k)) row.getCell(2).numFmt = '"$"#,##0.00';
+      if (k === 'Generado el') row.getCell(2).numFmt = '[$-es-MX]dd mmm yyyy hh:mm';
+    });
+
+    const buf = await wb.xlsx.writeBuffer();
+    const url = URL.createObjectURL(new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
     const a = document.createElement('a');
     a.href = url;
-    a.download = `Portafolio_TI_${new Date().toISOString().slice(0,10)}.xlsx`;
-    document.body.appendChild(a); a.click();
-    document.body.removeChild(a); URL.revokeObjectURL(url);
+    const d = new Date();
+    const stamp = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    a.download = `Portafolio_TI_${S.view === 'general' ? '' : S.view.replace(/\s+/g, '_') + '_'}${stamp}.xlsx`;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+    toast(`Excel generado con ${rows.length} registros.`);
+  } catch (e) {
+    console.error(e);
+    toast('No se pudo generar el Excel.', 'bad');
+  } finally {
+    setLoading(false);
+  }
+}
 
-    } catch(err) {
-      alert('Error al exportar: ' + err.message);
-      console.error(err);
-    }
-  },
+// ═══════════════════════════ EVENTOS ═══════════════════════════
+function debounce(fn, ms) { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; }
+const onSearch = debounce(v => { S.q = v; renderTable(); }, 160);
 
-};
+document.addEventListener('click', async e => {
+  const tr = e.target.closest('tr[data-uid]');
+  if (tr && !e.target.closest('button')) return openDrawer(tr.dataset.uid);
+  const el = e.target.closest('[data-action]');
+  if (!el) return;
+  const a = el.dataset.action;
+  if (a === 'open-portfolio') return openPortfolio();
+  if (a === 'pick-file') return $('file-input').click();
+  if (a === 'capex') return showUsersStep();
+  if (a === 'back-tools') return showToolsStep();
+  if (a === 'profile') { sessionStorage.setItem('gsee_usuario', el.dataset.user); location.href = "rpps/Dashboard - Rpp's.html"; return; }
+  if (a === 'logout') { closeDrawer(); if (window.cmLogout) window.cmLogout(); return; }
+  if (a === 'menu') { closeDrawer(); return showMenu(); }
+  if (a === 'view') return setView(el.dataset.view);
+  if (a === 'goto') { const t = $(el.dataset.target); if (t) t.scrollIntoView({ behavior: reducedMotion ? 'auto' : 'smooth', block: 'start' }); return; }
+  if (a === 'print') return window.print();
+  if (a === 'export') return exportExcel();
+  if (a === 'export-all') return exportConsolidado();
+  if (a === 'close-drawer') return closeDrawer();
+  if (a === 'clear-filters') { S.filters = { pm: '', esfuerzo: '', tipo: '', fase: '', unidad: '', estado: '', alerta: '' }; return update(); }
+  if (a === 'drop-filter') { S.filters[el.dataset.key] = ''; return update(); }
+  if (a === 'alert') { S.filters.alerta = S.filters.alerta === el.dataset.key ? '' : el.dataset.key; update(); return; }
+  if (a === 'sort') {
+    const k = el.dataset.key;
+    if (S.sort.key === k) { if (S.sort.dir === 1) S.sort.dir = -1; else S.sort = { key: 'order', dir: 1 }; }
+    else S.sort = { key: k, dir: TABLE_COLS.find(c => c.key === k).num ? -1 : 1 };
+    return renderTable();
+  }
+  if (a === 'clear-cache') {
+    const ok = await confirmDialog('¿Quitar el archivo de este equipo?', 'Se borrará la copia guardada en este navegador. El archivo original no se modifica. Tendrás que cargarlo de nuevo para ver el dashboard.', 'Quitar archivo');
+    if (!ok) return;
+    await cacheClear();
+    S.data = null; S.meta = null;
+    refreshHeader(); refreshMenu(); renderView();
+    toast('Archivo quitado de este equipo.');
+  }
+});
+document.addEventListener('change', e => {
+  if (e.target.id === 'file-input') { const f = e.target.files[0]; e.target.value = ''; return handleFile(f); }
+  const key = e.target.dataset && e.target.dataset.filter;
+  if (key) { S.filters[key] = e.target.value; update(); }
+});
+document.addEventListener('input', e => { if (e.target.id === 'q') onSearch(e.target.value); });
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeDrawer();
+  if ((e.key === 'Enter' || e.key === ' ') && e.target.matches && e.target.matches('tr[data-uid]')) { e.preventDefault(); openDrawer(e.target.dataset.uid); }
+});
+document.querySelectorAll('img[data-fallback]').forEach(img => img.addEventListener('error', () => {
+  img.hidden = true;
+  if (img.dataset.fallback) { const fb = $(img.dataset.fallback); if (fb) fb.hidden = false; }
+}, { once: true }));
+// Arrastrar y soltar el Excel sobre la página
+document.addEventListener('dragover', e => { if (e.dataTransfer && [...e.dataTransfer.types].includes('Files')) e.preventDefault(); });
+document.addEventListener('drop', e => { if (e.dataTransfer && e.dataTransfer.files.length) { e.preventDefault(); handleFile(e.dataTransfer.files[0]); } });
+let resizeT;
+window.addEventListener('resize', () => { clearTimeout(resizeT); resizeT = setTimeout(() => Object.values(S.charts).forEach(c => c.resize()), 150); });
+window.addEventListener('beforeprint', () => Object.values(S.charts).forEach(c => c.resize()));
 
-// Precarga el portafolio guardado en segundo plano; el menú sigue visible
-App.renderEmpty();
-App.tryLoadCache();
+window.onCmLogout = () => { closeDrawer(); showMenu(); };
+window.PortafolioParser = { parseWorkbook, toDate, toPct, toMoney };
 
+// ═══════════════════════════ INICIO ═══════════════════════════
+refreshMenu();
+renderEmpty();
+// Si el usuario estaba en el dashboard y recarga la página, vuelve directo al dashboard
+const reopen = sessionStorage.getItem('cm_dash_open') === '1' && !!readMeta();
+if (reopen) $('menu').classList.add('is-hidden');
+if (readMeta()) restoreFromCache().then(ok => { if (!ok) { refreshMenu(); if (reopen) showMenu(); } });
+})();
