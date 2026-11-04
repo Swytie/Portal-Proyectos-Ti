@@ -406,6 +406,7 @@ async function handleFile(file) {
     const wb = XLSX.read(buffer, { type: 'array', cellNF: true });
     const data = parseWorkbook(wb);
     data.wb = wb;
+    data.buffer = buffer;
     if (!data.records.length) {
       setLoading(false);
       return toast('No se encontraron proyectos. Verifica que sea el Excel del Portafolio Expansión TI (hojas por PM con la columna "Nombre del proyecto").', 'bad');
@@ -431,6 +432,7 @@ async function restoreFromCache() {
     const wb = XLSX.read(cached.buffer, { type: 'array', cellNF: true });
     const data = parseWorkbook(wb);
     data.wb = wb;
+    data.buffer = cached.buffer;
     setData(data, cached.meta);
     return true;
   } catch (e) {
@@ -455,12 +457,12 @@ function setData(data, meta) {
   renderView();
 }
 const pmColor = pm => S.pmColor[pm] || C.brand600;
-// Texto blanco u oscuro según el contraste del color de fondo (WCAG)
-function inkOn(hex) {
+// Oscurece el color del PM lo justo para que las iniciales en blanco se lean bien (contraste WCAG ≥ 4.5)
+function avatarBg(hex) {
   const lin = c => { c /= 255; return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4; };
-  const n = parseInt(hex.slice(1), 16);
-  const L = 0.2126 * lin(n >> 16) + 0.7152 * lin((n >> 8) & 255) + 0.0722 * lin(n & 255);
-  return (1.05 / (L + 0.05)) >= 4.5 ? '#fff' : '#1E0F20';
+  let [r, g, b] = [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16));
+  for (let k = 0; k < 20 && 1.05 / (0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b) + 0.05) < 4.5; k++) [r, g, b] = [r, g, b].map(v => Math.round(v * 0.92));
+  return '#' + [r, g, b].map(v => v.toString(16).padStart(2, '0')).join('');
 }
 function resetFilters() {
   S.filters = { pm: '', esfuerzo: '', tipo: '', fase: '', unidad: '', estado: '', alerta: '' };
@@ -573,12 +575,11 @@ function renderView() {
         </nav>
       </div>
       <div class="hero-actions">
-        <button class="btn btn-soft" data-action="print" title="Imprimir o guardar como PDF"><i class="ti ti-printer"></i> PDF</button>
         <button class="btn btn-soft" data-action="export-all" title="Todas las pestañas de los PMs en un solo listado, con todas sus columnas"><i class="ti ti-table-export"></i> Descargar consolidado</button>
         <button class="btn btn-primary" data-action="export" title="Descargar en formato MSR_R con los filtros aplicados"><i class="ti ti-file-download"></i> Exportar MSR_R</button>
       </div>
     </div>` : `
-    <div class="pm-hero" style="--pm-color:${pmColor(S.view)};--pm-ink:${inkOn(pmColor(S.view))}">
+    <div class="pm-hero" style="--pm-color:${pmColor(S.view)};--pm-avatar:${avatarBg(pmColor(S.view))}">
       <div class="pm-avatar">${esc(initials(S.view))}</div>
       <div class="pm-hero-main">
         <span class="eyebrow"><i class="ti ${pmInfo(S.view).fullName ? 'ti-user-star' : 'ti-user'}"></i> ${esc(pmInfo(S.view).role)}</span>
@@ -586,7 +587,6 @@ function renderView() {
         <div class="hero-sub"><span><i class="ti ti-folders"></i>${rows.length} registros</span><span><i class="ti ti-building-hospital"></i>${uniq(rows.map(r => r.unidad).filter(Boolean)).length} unidades</span><span><i class="ti ti-file-spreadsheet"></i>Hoja "${esc(rows[0] ? rows[0].sheet : S.view)}"</span></div>
       </div>
       <div class="hero-actions">
-        <button class="btn btn-soft" data-action="print"><i class="ti ti-printer"></i> PDF</button>
         <button class="btn btn-primary" data-action="export" title="Descargar en formato MSR_R con los filtros aplicados"><i class="ti ti-file-download"></i> Exportar MSR_R</button>
       </div>
     </div>`;
@@ -1083,18 +1083,22 @@ function consolidadoColumns(wb, sheets, records) {
   Object.keys(CONSOLIDADO_LABEL).forEach(k => COLS[k].forEach(a => aliasToKey.set(a, k)));
   const groups = new Map();
   const perSheet = {};
+  const hdrRow = {};
   const order = [];
   sheets.forEach(s => {
     const ws = wb.Sheets[s.sheet];
     const raw = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '', raw: true, blankrows: true });
     const hdr = raw.slice(0, 40).findIndex(row => row.some(c => fold(c) === 'nombre del proyecto'));
+    const range = ws['!ref'] ? XLSX.utils.decode_range(ws['!ref']) : { s: { r: 0, c: 0 }, e: { c: raw[hdr].length - 1 } };
+    const c0 = range.s.c;
+    hdrRow[s.sheet] = hdr + range.s.r + 1;
     const rowsOfSheet = records.filter(r => r.sheet === s.sheet).map(r => r.row);
-    const width = ws['!ref'] ? XLSX.utils.decode_range(ws['!ref']).e.c + 1 : raw[hdr].length;
     const seen = {};
     let prev = null;
     perSheet[s.sheet] = [];
-    for (let c = 0; c < width; c++) {
-      const h = raw[hdr][c];
+    for (let i = 0; i <= range.e.c - c0; i++) {
+      const c = i + c0;
+      const h = raw[hdr][i];
       let key, label;
       if (h === '' || h == null) {
         // Columna sin encabezado: solo se incluye si trae algún dato en los proyectos
@@ -1110,7 +1114,7 @@ function consolidadoColumns(wb, sheets, records) {
         key = canon ? 'k:' + canon : 'h:' + f + (seen[f] > 1 ? '\u0001' + seen[f] : '');
       }
       if (!groups.has(key)) {
-        groups.set(key, { key, canon: key.startsWith('k:') ? key.slice(2) : null, spellings: new Map(), dup: key.includes('\u0001') ? key.split('\u0001')[1] : null });
+        groups.set(key, { key, canon: key.startsWith('k:') ? key.slice(2) : null, spellings: new Map(), dup: key.includes('\u0001') ? key.split('\u0001')[1] : null, from: { sheet: s.sheet, col: c } });
         const at = prev ? order.indexOf(prev) + 1 : 0;
         order.splice(at, 0, key);
       }
@@ -1126,108 +1130,125 @@ function consolidadoColumns(wb, sheets, records) {
     const best = [...g.spellings.entries()].sort((a, b) => b[1] - a[1])[0][0];
     return { ...g, label: best + (g.dup ? ` (${g.dup})` : '') };
   });
-  return { cols, perSheet };
+  return { cols, perSheet, hdrRow };
 }
-// Columnas que no vienen en el Excel pero conviene tener a la mano (calculadas por el dashboard)
-const CONSOLIDADO_EXTRA = [
-  { h: 'Tipo de esfuerzo (normalizado)', v: r => r.esfuerzo },
-  { h: 'Desviación vs plan', v: r => r.desv, fmt: '+0%;-0%;0%' },
-  { h: 'Estado de avance', v: r => ({ ok: 'En línea con el plan', warn: 'Atraso de 5 a 10 pts', bad: 'Atraso mayor a 10 pts', none: 'Sin avance capturado' }[r.health]) },
-  { h: '% Ejercido del monto', v: r => (r.monto > 0 ? r.erogado / r.monto : null), fmt: '0%' },
-  { h: 'Go Live vencido', v: r => (r.overdue ? 'Sí' : 'No') },
-  { h: 'Días para Go Live', v: r => { if (!r.golive.date || !r.activo) return null; const t = new Date(); t.setHours(0, 0, 0, 0); return Math.round((r.golive.date - t) / 864e5); }, fmt: '0' },
-];
+const cloneStyle = s => (s ? JSON.parse(JSON.stringify(s)) : {});
+// Fórmulas (incluidas las compartidas entre filas) se copian como su resultado calculado: las columnas cambian de lugar
+const cellValue = cell => { if (cell.type === ExcelJS.ValueType.Formula) { const r = cell.result; return r === undefined ? null : r; } return cell.value; };
+
+// Una sola hoja con el mismo formato de las pestañas del portafolio (títulos, encabezados, estilos
+// de cada celda y tema de colores), con los proyectos de todos los PMs y una columna "PM" al inicio.
+// Se construye sobre una copia del propio Excel para conservar su tema; luego se quitan las demás hojas.
+async function buildConsolidadoStyled(d, sheets, records, cols, perSheet, hdrRow) {
+  const out = new ExcelJS.Workbook();
+  await out.xlsx.load(d.buffer);
+  const hdrCounts = {};
+  sheets.forEach(s => { hdrCounts[hdrRow[s.sheet]] = (hdrCounts[hdrRow[s.sheet]] || 0) + 1; });
+  const H = +Object.entries(hdrCounts).sort((a, b) => b[1] - a[1])[0][0];
+  const tplName = sheets.find(s => hdrRow[s.sheet] === H).sheet;
+  const tpl = out.getWorksheet(tplName);
+  let name = 'Consolidado';
+  while (out.getWorksheet(name)) name += ' PMs';
+  const ws = out.addWorksheet(name);
+  const total = cols.length + 1;
+
+  // Filas de título (las mismas que tiene la pestaña modelo sobre el encabezado)
+  for (let r = 1; r < H; r++) {
+    const sr = tpl.getRow(r), dr = ws.getRow(r);
+    if (sr.height) dr.height = sr.height;
+    const st = cloneStyle(sr.getCell(1).style);
+    for (let c = 1; c <= total; c++) dr.getCell(c).style = cloneStyle(st);
+    dr.getCell(1).value = cellValue(sr.getCell(1));
+  }
+  (tpl.model.merges || []).forEach(m => {
+    const [a, b] = m.split(':');
+    const ra = tpl.getCell(a), rb = tpl.getCell(b);
+    if (ra.col === 1 && rb.row < H) ws.mergeCells(ra.row, 1, rb.row, total);
+  });
+
+  // Encabezado: cada columna conserva el estilo que tiene en su pestaña de origen
+  const hr = ws.getRow(H);
+  const tplHdrRow = tpl.getRow(H);
+  if (tplHdrRow.height) hr.height = tplHdrRow.height;
+  hr.getCell(1).value = 'PM';
+  hr.getCell(1).style = cloneStyle(tplHdrRow.getCell(1).style);
+  ws.getColumn(1).width = 14;
+  cols.forEach((c, i) => {
+    const srcWs = out.getWorksheet(c.from.sheet);
+    const cell = hr.getCell(i + 2);
+    cell.value = c.label;
+    cell.style = cloneStyle(srcWs.getRow(hdrRow[c.from.sheet]).getCell(c.from.col + 1).style);
+    ws.getColumn(i + 2).width = srcWs.getColumn(c.from.col + 1).width || 16;
+  });
+
+  // Proyectos: valor y estilo de cada celda copiados de su pestaña
+  const thin = { style: 'thin', color: { argb: 'FFBFBFBF' } };
+  const emptyStyle = { border: { top: thin, bottom: thin, left: thin, right: thin } };
+  records.forEach((r, k) => {
+    const srcWs = out.getWorksheet(r.sheet);
+    const srcRow = srcWs.getRow(r.row);
+    const dr = ws.getRow(H + 1 + k);
+    if (srcRow.height) dr.height = srcRow.height;
+    const colOf = new Map((perSheet[r.sheet] || []).map(x => [x.key, x.col]));
+    const pmCell = dr.getCell(1);
+    pmCell.value = r.pm;
+    pmCell.style = cloneStyle(srcRow.getCell(1).style);
+    cols.forEach((c, i) => {
+      const dc = dr.getCell(i + 2);
+      if (!colOf.has(c.key)) { dc.style = cloneStyle(emptyStyle); return; }
+      const sc = srcRow.getCell(colOf.get(c.key) + 1);
+      dc.value = cellValue(sc);
+      dc.style = cloneStyle(sc.style);
+    });
+  });
+  ws.views = [{ state: 'normal', showGridLines: true }];
+
+  out.worksheets.filter(w => w.id !== ws.id).forEach(w => out.removeWorksheet(w.id));
+  try { out.definedNames.model = []; } catch (e) { /* sin nombres definidos */ }
+  out.views = [{ x: 0, y: 0, width: 20000, height: 12000, firstSheet: 0, activeTab: 0, visibility: 'visible' }];
+  return out;
+}
+
+// Respaldo si el archivo no se puede abrir con formato (p. ej. .xls antiguo): misma hoja, estilo básico
 function consolidadoValue(ws, row, col) {
   const cell = ws[XLSX.utils.encode_cell({ r: row - 1, c: col })];
   if (!cell || cell.v === '' || cell.v == null) return { v: null };
-  if (cell.t === 'd') return { v: cell.v, date: true };
   if (cell.t === 'n' && cell.z && XLSX.SSF.is_date(cell.z)) { const dt = toDate(cell.v).date; if (dt) return { v: dt, date: true }; }
   if (cell.t === 'n') return { v: cell.v, fmt: cell.z && cell.z !== 'General' ? cell.z : null };
   if (cell.t === 'b') return { v: cell.v ? 'Sí' : 'No' };
   return { v: cleanMulti(cell.v) };
 }
+function buildConsolidadoBasic(d, records, cols, perSheet) {
+  const out = new ExcelJS.Workbook();
+  const ws = out.addWorksheet('Consolidado');
+  const hr = ws.addRow(['PM', ...cols.map(c => c.label)]);
+  hr.eachCell(cell => {
+    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF5C2B60' } };
+    cell.font = { bold: true, size: 10, color: { argb: 'FFFFFFFF' } };
+    cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+  });
+  records.forEach(r => {
+    const colOf = new Map((perSheet[r.sheet] || []).map(x => [x.key, x.col]));
+    const vals = [{ v: r.pm }, ...cols.map(c => (colOf.has(c.key) ? consolidadoValue(d.wb.Sheets[r.sheet], r.row, colOf.get(c.key)) : { v: null }))];
+    const row = ws.addRow(vals.map(x => x.v));
+    vals.forEach((x, i) => { if (x.date) row.getCell(i + 1).numFmt = 'dd/mm/yyyy'; else if (x.fmt) row.getCell(i + 1).numFmt = x.fmt; });
+  });
+  ws.columns.forEach(c => { c.width = 18; });
+  return out;
+}
+
 async function exportConsolidado() {
   const d = S.data;
-  if (!d || !d.wb) return toast('Vuelve a cargar el Excel para generar el consolidado.', 'bad');
+  if (!d || !d.wb || !d.buffer) return toast('Vuelve a cargar el Excel para generar el consolidado.', 'bad');
   const sheets = d.sheets.filter(s => (s.status === 'ok' || s.status === 'auto') && s.rows > 0);
   setLoading(true, 'Generando consolidado…');
   try {
     if (!window.ExcelJS) await loadScript('vendor/exceljs.min.js');
     const records = d.records.slice().sort((a, b) => a.order - b.order);
-    const { cols, perSheet } = consolidadoColumns(d.wb, sheets, records);
-    const out = new ExcelJS.Workbook();
-    out.creator = 'GSEE Proyectos TI';
-    out.created = new Date();
-    const nameIdx = cols.findIndex(c => c.canon === 'nombre');
-    const ws = out.addWorksheet('Consolidado', { views: [{ state: 'frozen', ySplit: 1, xSplit: nameIdx + 2 }] });
-    const header = ['PM', ...cols.map(c => c.label), ...CONSOLIDADO_EXTRA.map(x => x.h), 'Hoja origen', 'Fila origen'];
-    const firstExtra = cols.length + 2;
-    const widths = header.map(h => Math.min(28, Math.max(10, String(h).length + 2)));
-    const hr = ws.addRow(header);
-    hr.height = 32;
-    hr.eachCell((cell, i) => {
-      const extra = i >= firstExtra && i < firstExtra + CONSOLIDADO_EXTRA.length;
-      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: extra ? 'FF1F3864' : 'FF5C2B60' } };
-      if (extra) cell.note = 'Columna calculada por el dashboard (no viene en el Excel original)';
-      cell.font = { name: 'Calibri', bold: true, size: 10, color: { argb: 'FFFFFFFF' } };
-      cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
-      cell.border = { right: { style: 'thin', color: { argb: 'FF803F85' } } };
-    });
-    const thin = { style: 'thin', color: { argb: 'FFDDD0DE' } };
-    records.forEach(r => {
-      const src = d.wb.Sheets[r.sheet];
-      const byKey = {};
-      (perSheet[r.sheet] || []).forEach(({ col, key }) => { byKey[key] = consolidadoValue(src, r.row, col); });
-      const extras = CONSOLIDADO_EXTRA.map(x => { const v = x.v(r); return { v: v == null ? null : v, fmt: x.fmt }; });
-      const vals = [{ v: r.pm }, ...cols.map(c => byKey[c.key] || { v: null }), ...extras, { v: r.sheet }, { v: r.row }];
-      const row = ws.addRow(vals.map(x => x.v));
-      vals.forEach((x, i) => {
-        const cell = row.getCell(i + 1);
-        cell.font = { name: 'Calibri', size: 10 };
-        cell.border = { bottom: thin, right: thin };
-        cell.alignment = { vertical: 'top', wrapText: typeof x.v === 'string' && x.v.length > 40 };
-        if (x.date) cell.numFmt = 'dd/mm/yyyy';
-        else if (x.fmt) cell.numFmt = x.fmt;
-        const len = x.v == null ? 0 : x.date ? 10 : String(x.v).length;
-        widths[i] = Math.min(50, Math.max(widths[i], len + 2));
-      });
-    });
-    ws.columns.forEach((c, i) => { c.width = widths[i]; });
-    ws.autoFilter = { from: { row: 1, column: 1 }, to: { row: records.length + 1, column: header.length } };
-
-    const rs = out.addWorksheet('Resumen');
-    rs.columns = [{ width: 34 }, { width: 18 }, { width: 22 }, { width: 50 }];
-    rs.addRow(['Consolidado del Portafolio Expansión TI 2026']).font = { name: 'Calibri', size: 14, bold: true, color: { argb: 'FF5C2B60' } };
-    rs.addRow([`Archivo de origen: ${S.meta ? S.meta.name : ''} · Generado el ${fmtStamp(Date.now())}`]).font = { name: 'Calibri', size: 10, italic: true, color: { argb: 'FF85748A' } };
-    rs.addRow([]);
-    const th = rs.addRow(['Pestaña (PM)', 'Registros', 'Monto Aprobado TI']);
-    th.eachCell(c => { c.font = { name: 'Calibri', bold: true, size: 10, color: { argb: 'FFFFFFFF' } }; c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF5C2B60' } }; });
-    sheets.forEach(s => { const row = rs.addRow([s.sheet, s.rows, s.monto]); row.getCell(3).numFmt = '"$"#,##0.00'; });
-    const tot = rs.addRow(['Total', records.length, sum(records, 'monto')]);
-    tot.font = { name: 'Calibri', bold: true, size: 10 };
-    tot.getCell(3).numFmt = '"$"#,##0.00';
-    const merged = cols.filter(c => c.spellings.size > 1);
-    if (merged.length) {
-      rs.addRow([]);
-      rs.addRow(['Columnas unificadas (mismo dato con distinto nombre en cada pestaña)']).font = { name: 'Calibri', bold: true, size: 10, color: { argb: 'FF5C2B60' } };
-      merged.forEach(c => rs.addRow([c.label, '', '', [...c.spellings.keys()].join(' · ')]).font = { name: 'Calibri', size: 10 });
-    }
-    rs.addRow([]);
-    rs.addRow(['Columnas calculadas por el dashboard (encabezado azul)']).font = { name: 'Calibri', bold: true, size: 10, color: { argb: 'FF1F3864' } };
-    CONSOLIDADO_EXTRA.forEach(x => rs.addRow([x.h, '', '', 'No viene en el Excel original; se calcula con los datos de cada proyecto']).font = { name: 'Calibri', size: 10 });
-    const headerless = cols.filter(c => c.key.startsWith('x:'));
-    if (headerless.length) {
-      rs.addRow([]);
-      rs.addRow(['Columnas con datos pero sin encabezado en el Excel (se incluyeron para no perder información)']).font = { name: 'Calibri', bold: true, size: 10, color: { argb: 'FF9A3B12' } };
-      headerless.forEach(c => rs.addRow([c.label]).font = { name: 'Calibri', size: 10 });
-    }
-    const ignored = d.sheets.filter(s => s.status === 'ignored');
-    if (ignored.length) {
-      rs.addRow([]);
-      rs.addRow(['Pestañas no incluidas']).font = { name: 'Calibri', bold: true, size: 10, color: { argb: 'FF5C2B60' } };
-      ignored.forEach(s => rs.addRow([s.sheet, '', '', s.reason]).font = { name: 'Calibri', size: 10 });
-    }
-
+    const { cols, perSheet, hdrRow } = consolidadoColumns(d.wb, sheets, records);
+    let out;
+    try { out = await buildConsolidadoStyled(d, sheets, records, cols, perSheet, hdrRow); }
+    catch (e) { console.warn('Consolidado con formato no disponible, se usa formato básico', e); out = buildConsolidadoBasic(d, records, cols, perSheet); }
     const buf = await out.xlsx.writeBuffer();
     const url = URL.createObjectURL(new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
     const a = document.createElement('a');
@@ -1236,7 +1257,7 @@ async function exportConsolidado() {
     a.download = `Portafolio_TI_Consolidado_${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}.xlsx`;
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 2000);
-    toast(`Consolidado generado: ${records.length} registros de ${sheets.length} pestañas, ${header.length} columnas.`);
+    toast(`Consolidado generado: ${records.length} proyectos de ${sheets.length} pestañas en una sola hoja.`);
   } catch (e) {
     console.error(e);
     toast('No se pudo generar el consolidado.', 'bad');
@@ -1380,7 +1401,6 @@ document.addEventListener('click', async e => {
   if (a === 'menu') { closeDrawer(); return showMenu(); }
   if (a === 'view') return setView(el.dataset.view);
   if (a === 'goto') { const t = $(el.dataset.target); if (t) t.scrollIntoView({ behavior: reducedMotion ? 'auto' : 'smooth', block: 'start' }); return; }
-  if (a === 'print') return window.print();
   if (a === 'export') return exportExcel();
   if (a === 'export-all') return exportConsolidado();
   if (a === 'close-drawer') return closeDrawer();
