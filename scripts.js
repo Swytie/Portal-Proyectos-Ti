@@ -10,6 +10,7 @@ const PM_CONFIG = [
   { name: 'Zaira F',     aliases: ['Zaira F', 'Z F'],     role: 'Project Manager' },
   { name: 'Cynthia M',   aliases: ['Cynthia M', 'C M'],   role: 'Project Manager' },
   { name: 'Alejandra R', aliases: ['Alejandra R', 'A R'], role: 'Jefe de Proyectos de Unidades y Expansión', fullName: 'Alejandra Rojas' },
+  { name: 'Eddie',       aliases: ['Eddie'],              role: 'Project Manager' },
 ];
 const pmInfo = pm => PM_CONFIG.find(p => p.name === pm) || { name: pm, role: 'Project Manager' };
 // Paleta categórica validada (orden fijo; el color sigue al PM, nunca a su posición en un ranking)
@@ -155,6 +156,7 @@ function parseWorkbook(wb, XLSXlib) {
   const configured = new Map();
   PM_CONFIG.forEach(pm => pm.aliases.forEach(a => configured.set(fold(a), pm.name)));
   const found = new Set();
+  const checklist = readMactiChecklist(wb, X);
 
   wb.SheetNames.forEach((sheetName, sheetIdx) => {
     const pmName = configured.get(fold(sheetName));
@@ -217,7 +219,12 @@ function parseWorkbook(wb, XLSXlib) {
         liderProy: clean(get(row, 'liderProy')), ruta: clean(get(row, 'ruta')), tipoServ: clean(get(row, 'tipoServ')),
         core: clean(get(row, 'core')), desc: cleanMulti(get(row, 'desc')),
         macti: mactiRaw == null ? null : Math.round(mactiRaw * 1000) / 10,
+        mactiFuente: mactiRaw == null ? '' : 'columna "% MACTI" de la hoja del PM',
       };
+      // El checklist MACTI (documentos subidos ÷ requeridos) manda sobre la columna de la hoja del PM
+      const ck = mactiFor(checklist, rec);
+      rec.enChecklist = checklist ? checklist.listed.has('n:' + fold(nombre)) || (!!rec.id && checklist.listed.has('i:' + rec.id)) : null;
+      if (ck) { rec.macti = ck.pct; rec.mactiFuente = ck.req ? `checklist MACTI: ${ck.sub} de ${ck.req} documentos` : 'checklist MACTI (columna %MACTI)'; rec.mactiDocs = ck; }
       rec.esfuerzo = esfuerzoDe(rec.tipoRaw);
       rec.activo = rec.esfuerzo === 'Proyecto';
       rec.overdue = rec.activo && !!rec.golive.date && rec.golive.date < today && !isCierre(rec);
@@ -234,16 +241,54 @@ function parseWorkbook(wb, XLSXlib) {
     if (!found.has(pm.name) && !sheets.some(s => s.pm === pm.name)) sheets.push({ sheet: pm.name, pm: pm.name, status: 'missing', reason: 'No se encontró la hoja de este PM en el archivo', rows: 0, monto: 0 });
   });
 
-  // MACTI global: checklist dedicado si existe; si no, promedio de la columna "% MACTI" en proyectos activos
-  let macti = null;
-  const mactiSheet = wb.SheetNames.find(n => /macti/i.test(n));
-  if (mactiSheet) {
-    const raw = X.utils.sheet_to_json(wb.Sheets[mactiSheet], { header: 1, defval: '' });
-    let req = 0, sub = 0;
-    raw.slice(3).forEach(row => { if (typeof row[10] === 'number' && row[10] > 0) { req += row[10]; sub += typeof row[11] === 'number' ? row[11] : 0; } });
-    if (req > 0) macti = { value: Math.round(sub / req * 1000) / 10, basis: 'checklist' };
-  }
+  // MACTI global: documentos subidos ÷ requeridos de todo el checklist (si el archivo lo trae)
+  const macti = checklist && checklist.req > 0 ? { value: Math.round(checklist.sub / checklist.req * 1000) / 10, basis: 'checklist', proyectos: checklist.count } : null;
   return { records, sheets, pmOrder, issues: auditRecords(records), macti };
+}
+
+// Hoja "MACTI Checklist": % de cada proyecto = documentos subidos ÷ documentos requeridos
+function readMactiChecklist(wb, X) {
+  const name = wb.SheetNames.find(n => /macti/i.test(n));
+  if (!name) return null;
+  const raw = X.utils.sheet_to_json(wb.Sheets[name], { header: 1, defval: '', raw: true });
+  const hdr = raw.slice(0, 20).findIndex(row => row.some(c => fold(c) === 'nombre del proyecto'));
+  if (hdr < 0) return null;
+  const H = raw[hdr].map(fold);
+  const col = (...names) => { for (const n of names) { const i = H.indexOf(n); if (i >= 0) return i; } return -1; };
+  const iId = col('# proyecto en oracle', '# proyecto'), iN = col('nombre del proyecto'), iReq = col('documentos requeridos'), iSub = col('documentos subidos'), iPct = col('%macti', '% macti'), iPm = col('pm / gestor de proyecto asignado', 'pm / gestor');
+  const byId = new Map(), byName = new Map(), listed = new Set();
+  let req = 0, sub = 0, count = 0;
+  raw.slice(hdr + 1).forEach(row => {
+    const nombre = clean(row[iN]);
+    if (isBlank(nombre)) return;
+    listed.add('n:' + fold(nombre));
+    if (iId >= 0 && /^\d+$/.test(clean(row[iId]))) listed.add('i:' + clean(row[iId]));
+    const r = typeof row[iReq] === 'number' ? row[iReq] : null;
+    const s = typeof row[iSub] === 'number' ? row[iSub] : null;
+    if (r === 0) return; // sin documentos requeridos: no hay medición
+    let pct = null;
+    if (r > 0 && s != null) { pct = s / r; req += r; sub += s; }
+    else if (iPct >= 0) pct = toPct(row[iPct]);
+    if (pct == null) return;
+    const entry = { pct: Math.round(pct * 1000) / 10, req: r, sub: s, gestor: iPm >= 0 ? fold(row[iPm]) : '' };
+    count++;
+    const id = iId >= 0 ? clean(row[iId]) : '';
+    if (/^\d+$/.test(id)) byId.set(id, entry);
+    const k = fold(nombre);
+    byName.set(k, (byName.get(k) || []).concat(entry));
+  });
+  return listed.size ? { byId, byName, listed, req, sub, count } : null;
+}
+// Si el mismo nombre aparece varias veces en el checklist, se usa la fila cuyo PM coincide con el del proyecto
+function mactiFor(checklist, rec) {
+  if (!checklist) return null;
+  if (rec.id && /^\d+$/.test(rec.id) && checklist.byId.has(rec.id)) return checklist.byId.get(rec.id);
+  const list = checklist.byName.get(fold(rec.nombre));
+  if (!list) return null;
+  if (list.length === 1) return list[0];
+  const first = fold(rec.pm).split(' ')[0];
+  const gestor = fold(rec.gestor);
+  return list.find(e => e.gestor && (e.gestor === gestor || e.gestor.split(' ')[0] === first)) || null;
 }
 
 function auditRecords(records) {
@@ -255,6 +300,7 @@ function auditRecords(records) {
     { code: 'monto-no-cuadra', level: 'warn', label: 'Monto TI no cuadra con Erogado + Comprometido + Disponible', test: r => r.monto > 0 && Math.abs(r.erogado + r.comprometido + r.disponible - r.monto) > 1,
       detail: r => `Monto ${moneyExact(r.monto)} · suma ${moneyExact(r.erogado + r.comprometido + r.disponible)} · falta ${moneyExact(r.monto - r.erogado - r.comprometido - r.disponible)}` },
     { code: 'pct-rango', level: 'warn', label: 'Porcentaje de avance mayor a 100%', test: r => (r.pct || 0) > 1.0001 || (r.pctPlan || 0) > 1.0001 },
+    { code: 'sin-checklist-macti', level: 'info', label: 'Proyectos activos sin registro en el Checklist MACTI', test: r => r.activo && r.enChecklist === false },
     { code: 'rrpp-texto', level: 'info', label: 'RRPP con texto en lugar de número', test: r => r.rrpp && !/\d/.test(r.rrpp), detail: r => `RRPP: "${r.rrpp}"` },
     { code: 'sin-esfuerzo', level: 'info', label: 'Sin "Tipo de esfuerzo" (no cuentan como activos ni backlog)', test: r => r.esfuerzo === 'Sin clasificar' },
     { code: 'sin-tipo', level: 'info', label: 'Sin "Tipo de proyecto" (Estratégico / RyR)', test: r => !r.tipoProy },
@@ -1057,7 +1103,7 @@ function openDrawer(uid) {
       <div class="drawer-sec">Identificación</div>
       <dl class="dl">${row('# Proyecto', r.id ? `<span class="mono">${t(r.id)}</span>` : '')}${row('RRPP', t(r.rrpp))}${row('Dirección solicitante', t(r.direccion))}${row('Unidad', t(r.unidad))}${row('Tipo de proyecto', t(r.tipoProy))}${row('Tipo de esfuerzo', t(r.tipoRaw))}${r.tamano ? row('Tamaño', t(r.tamano)) : ''}${r.clasif ? row('Clasificación', t(r.clasif)) : ''}${r.prioridad ? row('Prioridad', t(r.prioridad)) : ''}</dl>
       <div class="drawer-sec">Estatus y avance</div>
-      <dl class="dl">${row('Fase', t(r.fase))}${row('Estado', t(r.estado))}${row('% real', r.pct == null ? '' : pctFmt(r.pct))}${row('% planeado', r.pctPlan == null ? '' : pctFmt(r.pctPlan))}${row('Desviación', r.desv == null ? '' : `<span class="delta ${r.desv >= -0.05 ? 'good' : r.desv >= -0.10 ? 'warn' : 'bad'}">${ptsFmt(r.desv)}</span>`)}${r.macti != null ? row('MACTI', r.macti.toLocaleString('es-MX', { maximumFractionDigits: 1 }) + '%') : ''}</dl>
+      <dl class="dl">${row('Fase', t(r.fase))}${row('Estado', t(r.estado))}${row('% real', r.pct == null ? '' : pctFmt(r.pct))}${row('% planeado', r.pctPlan == null ? '' : pctFmt(r.pctPlan))}${row('Desviación', r.desv == null ? '' : `<span class="delta ${r.desv >= -0.05 ? 'good' : r.desv >= -0.10 ? 'warn' : 'bad'}">${ptsFmt(r.desv)}</span>`)}${r.macti != null ? row('MACTI', `${r.macti.toLocaleString('es-MX', { maximumFractionDigits: 1 })}% <span style="color:var(--ink-3);font-weight:400">· ${esc(r.mactiFuente)}</span>`) : ''}</dl>
       <div class="drawer-sec">Fechas</div>
       <dl class="dl">${row('Inicio', d(r.fechaIni))}${row('Go Live', d(r.golive) + (r.overdue ? ' <span class="tag t-bad">Vencido</span>' : ''))}${row('Cierre', d(r.fechaCie))}</dl>
       <div class="drawer-sec">Presupuesto</div>
@@ -1160,12 +1206,60 @@ const cloneStyle = s => (s ? JSON.parse(JSON.stringify(s)) : {});
 // Fórmulas (incluidas las compartidas entre filas) se copian como su resultado calculado: las columnas cambian de lugar
 const cellValue = cell => { if (cell.type === ExcelJS.ValueType.Formula) { const r = cell.result; return r === undefined ? null : r; } return cell.value; };
 
+// Copia ligera del .xlsx para ExcelJS: solo las pestañas de PM, sin columnas vacías más allá de las usadas
+// y sin validaciones, formatos condicionales ni imágenes. Algunas hojas del portafolio (y columnas con
+// formato hasta XFC) congelan a ExcelJS; para copiar valores y estilos no hacen falta.
+const colNumOf = s => s.split('').reduce((n, ch) => n * 26 + ch.charCodeAt(0) - 64, 0);
+async function slimWorkbook(buffer, keep, maxCols) {
+  if (!window.JSZip) await loadScript('vendor/jszip.min.js');
+  const zip = await JSZip.loadAsync(buffer);
+  let wbx = await zip.file('xl/workbook.xml').async('string');
+  let rels = await zip.file('xl/_rels/workbook.xml.rels').async('string');
+  let ct = await zip.file('[Content_Types].xml').async('string');
+  const unxml = s => s.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&apos;/g, "'");
+  const reEsc = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const sheetTags = [...wbx.matchAll(/<sheet\b[^>]*\/>/g)].map(m => m[0]);
+  for (const tag of sheetTags) {
+    const name = unxml(tag.match(/name="([^"]+)"/)[1]);
+    const rid = tag.match(/r:id="([^"]+)"/)[1];
+    const rel = (rels.match(new RegExp(`<Relationship\\b[^>]*Id="${reEsc(rid)}"[^>]*/>`)) || [''])[0];
+    const target = (rel.match(/Target="([^"]+)"/) || [])[1];
+    if (!target) continue;
+    const path = 'xl/' + target.replace(/^\/?xl\//, '');
+    if (!keep.includes(name)) {
+      wbx = wbx.replace(tag, '');
+      rels = rels.replace(rel, '');
+      zip.remove(path);
+      zip.remove(path.replace(/([^/]+)$/, '_rels/$1.rels'));
+      ct = ct.replace(new RegExp(`<Override\\b[^>]*PartName="/${reEsc(path)}"[^>]*/>`), '');
+      continue;
+    }
+    const max = maxCols[name];
+    let xml = await zip.file(path).async('string');
+    if (max) {
+      xml = xml.replace(/<c r="([A-Z]+)(\d+)"([^>]*?)(\/>|>([\s\S]*?)<\/c>)/g, (m, c) => (colNumOf(c) > max ? '' : m));
+      xml = xml.replace(/<col\b[^>]*\/>/g, m => { const mn = +m.match(/min="(\d+)"/)[1], mx = +m.match(/max="(\d+)"/)[1]; return mn > max ? '' : mx > max ? m.replace(/max="\d+"/, `max="${max}"`) : m; });
+      xml = xml.replace(/<mergeCell ref="([A-Z]+)(\d+):([A-Z]+)(\d+)"\/>/g, (m, c1, r1, c2, r2) => (colNumOf(c1) > max ? '' : colNumOf(c2) > max ? `<mergeCell ref="${c1}${r1}:${XLSX.utils.encode_col(max - 1)}${r2}"/>` : m));
+      xml = xml.replace(/<dimension ref="[^"]*"\/>/, '').replace(/<row\b([^>]*?)\sspans="[^"]*"/g, '<row$1');
+    }
+    xml = xml.replace(/<dataValidations[\s\S]*?<\/dataValidations>/g, '').replace(/<conditionalFormatting[\s\S]*?<\/conditionalFormatting>/g, '')
+      .replace(/<(drawing|legacyDrawing|legacyDrawingHF|picture)\b[^>]*\/>/g, '').replace(/<extLst>[\s\S]*?<\/extLst>/g, '');
+    zip.file(path, xml);
+  }
+  wbx = wbx.replace(/<definedNames>[\s\S]*?<\/definedNames>/, '');
+  if (zip.file('xl/calcChain.xml')) { zip.remove('xl/calcChain.xml'); rels = rels.replace(/<Relationship\b[^>]*calcChain[^>]*\/>/, ''); ct = ct.replace(/<Override\b[^>]*calcChain[^>]*\/>/, ''); }
+  zip.file('xl/workbook.xml', wbx); zip.file('xl/_rels/workbook.xml.rels', rels); zip.file('[Content_Types].xml', ct);
+  return zip.generateAsync({ type: 'arraybuffer' });
+}
+
 // Una sola hoja con el mismo formato de las pestañas del portafolio (títulos, encabezados, estilos
 // de cada celda y tema de colores), con los proyectos de todos los PMs y una columna "PM" al inicio.
 // Se construye sobre una copia del propio Excel para conservar su tema; luego se quitan las demás hojas.
 async function buildConsolidadoStyled(d, sheets, records, cols, perSheet, hdrRow) {
   const out = new ExcelJS.Workbook();
-  await out.xlsx.load(d.buffer);
+  const maxCols = {};
+  sheets.forEach(s => { maxCols[s.sheet] = Math.max(1, ...(perSheet[s.sheet] || []).map(x => x.col + 1)); });
+  await out.xlsx.load(await slimWorkbook(d.buffer, sheets.map(s => s.sheet), maxCols));
   const hdrCounts = {};
   sheets.forEach(s => { hdrCounts[hdrRow[s.sheet]] = (hdrCounts[hdrRow[s.sheet]] || 0) + 1; });
   const H = +Object.entries(hdrCounts).sort((a, b) => b[1] - a[1])[0][0];
