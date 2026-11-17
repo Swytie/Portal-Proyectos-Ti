@@ -252,6 +252,8 @@ function auditRecords(records) {
     { code: 'activo-sin-fase', level: 'warn', label: 'Proyectos activos sin fase', test: r => r.activo && !r.fase },
     { code: 'activo-sin-avance', level: 'warn', label: 'Proyectos activos sin % real o % planeado', test: r => r.activo && (r.pct == null || r.pctPlan == null) },
     { code: 'erogado-excede', level: 'warn', label: 'Erogado mayor al monto aprobado', test: r => r.monto > 0 && r.erogado > r.monto + 1 },
+    { code: 'monto-no-cuadra', level: 'warn', label: 'Monto TI no cuadra con Erogado + Comprometido + Disponible', test: r => r.monto > 0 && Math.abs(r.erogado + r.comprometido + r.disponible - r.monto) > 1,
+      detail: r => `Monto ${moneyExact(r.monto)} · suma ${moneyExact(r.erogado + r.comprometido + r.disponible)} · falta ${moneyExact(r.monto - r.erogado - r.comprometido - r.disponible)}` },
     { code: 'pct-rango', level: 'warn', label: 'Porcentaje de avance mayor a 100%', test: r => (r.pct || 0) > 1.0001 || (r.pctPlan || 0) > 1.0001 },
     { code: 'rrpp-texto', level: 'info', label: 'RRPP con texto en lugar de número', test: r => r.rrpp && !/\d/.test(r.rrpp), detail: r => `RRPP: "${r.rrpp}"` },
     { code: 'sin-esfuerzo', level: 'info', label: 'Sin "Tipo de esfuerzo" (no cuentan como activos ni backlog)', test: r => r.esfuerzo === 'Sin clasificar' },
@@ -993,6 +995,24 @@ function renderQuality(base) {
   const skipped = sheets.flatMap(s => (s.skipped || []).map(x => `${s.sheet} · ${x}`));
   const missingCols = sheets.filter(s => s.missingCols && s.missingCols.length);
   const colNames = { tipo: 'Tipo de esfuerzo', monto: 'Monto TI', fase: 'Fase actual', estado: 'Estado', unidad: 'Unidades a desplegar', pct: '% real' };
+  // Cuadre de montos: Erogado + Comprometido + Disponible debe dar el Monto Aprobado TI de cada proyecto
+  const tM = sum(base, 'monto'), tE = sum(base, 'erogado'), tC = sum(base, 'comprometido'), tD = sum(base, 'disponible');
+  const conMonto = base.filter(r => r.monto > 0);
+  const noCuadran = conMonto.filter(r => Math.abs(r.erogado + r.comprometido + r.disponible - r.monto) > 1);
+  const cuadreRow = (label, v, strong) => `<tr${strong ? ' style="font-weight:700"' : ''}><td>${label}</td><td class="num">${moneyExact(v)}</td><td class="num">${tM > 0 ? pctFmt(share(v, tM)) : '—'}</td></tr>`;
+  const cuadre = `
+    <div class="drawer-sec" style="margin-top:6px">Cuadre de montos</div>
+    <div style="overflow:auto"><table class="dq-sheets"><thead><tr><th>Concepto (leído del Excel)</th><th class="num">Monto</th><th class="num">% del Monto TI</th></tr></thead><tbody>
+      ${cuadreRow('Monto Aprobado TI', tM, true)}
+      ${cuadreRow('Erogado', tE)}
+      ${cuadreRow('Comprometido', tC)}
+      ${cuadreRow('Disponible', tD)}
+      ${cuadreRow('Erogado + Comprometido + Disponible', tE + tC + tD, true)}
+      ${cuadreRow('Diferencia contra el Monto TI', tM - tE - tC - tD, true)}
+    </tbody></table></div>
+    <div class="dq-list" style="margin-bottom:14px">${noCuadran.length
+      ? `<div class="dq-ok" style="background:var(--warning-bg);color:var(--warning-ink)"><i class="ti ti-scale"></i>${conMonto.length - noCuadran.length} de ${conMonto.length} proyectos con monto cuadran. ${noCuadran.length} no cuadran porque falta capturar parte del desglose en el Excel: revisa la observación "Monto TI no cuadra" abajo.</div>`
+      : `<div class="dq-ok"><i class="ti ti-circle-check"></i>Los montos están completos: en los ${conMonto.length} proyectos con monto, Erogado + Comprometido + Disponible da exactamente el Monto TI.</div>`}</div>`;
 
   $('quality').innerHTML = card('', 'Lectura del archivo', `${esc(S.meta ? S.meta.name : '')}`, `
     <div class="dq-summary">
@@ -1001,6 +1021,8 @@ function renderQuality(base) {
       <div class="dq-stat"><b>${money(sum(base, 'monto'))}</b><span>Monto TI leído (sin filtros)</span></div>
       <div class="dq-stat"><b>${nObs}</b><span>observaciones por revisar</span></div>
     </div>
+    ${cuadre}
+    <div class="drawer-sec">Hojas del archivo</div>
     <div style="overflow:auto"><table class="dq-sheets"><thead><tr><th>Hoja del Excel</th><th>Uso en el dashboard</th><th class="num">Registros</th><th class="num">Monto TI</th></tr></thead><tbody>
       ${sheets.map(s => `<tr><td><b>${esc(s.sheet)}</b>${s.reason ? `<div class="muted" style="font-size:12px;color:var(--ink-3)">${esc(s.reason)}</div>` : ''}</td><td>${statusTag(s)}</td><td class="num">${s.rows || '—'}</td><td class="num">${s.monto ? money(s.monto) : '—'}</td></tr>`).join('')}
     </tbody></table></div>
