@@ -912,6 +912,7 @@ const TABLE_COLS = [
   { key: 'fechaCie', label: 'Cierre', sort: r => (r.fechaCie.date ? +r.fechaCie.date : null) },
   { key: 'monto', label: 'Monto TI', num: true, sort: r => r.monto },
   { key: 'erogado', label: 'Erogado', num: true, sort: r => r.erogado },
+  { key: 'comprometido', label: 'Comprometido', num: true, sort: r => r.comprometido },
   { key: 'disponible', label: 'Disponible', num: true, sort: r => r.disponible },
   { key: 'pct', label: '% Real', num: true, sort: r => r.pct },
   { key: 'pctPlan', label: '% Plan', num: true, sort: r => r.pctPlan },
@@ -960,7 +961,7 @@ function renderTable() {
       case 'estado': return r.estado ? `<span class="tag">${esc(r.estado)}</span>` : '<span class="muted">—</span>';
       case 'rrpp': return r.rrpp ? `<span class="mono">${esc(r.rrpp)}</span>` : '<span class="muted">—</span>';
       case 'fechaIni': case 'golive': case 'fechaCie': return dateHtml(r[c.key]);
-      case 'monto': case 'erogado': case 'disponible': return r[c.key] ? `<span title="${esc(moneyExact(r[c.key]))}">${money(r[c.key])}</span>` : '<span class="muted">—</span>';
+      case 'monto': case 'erogado': case 'comprometido': case 'disponible': return r[c.key] ? `<span title="${esc(moneyExact(r[c.key]))}">${money(r[c.key])}</span>` : '<span class="muted">—</span>';
       case 'pct': return r.pct == null ? '<span class="muted">—</span>' : `<span class="prog"><span class="prog-bar"><i style="width:${Math.min(100, r.pct * 100).toFixed(0)}%;background:${pmColor(r.pm)}"></i></span>${pctFmt(r.pct)}</span>`;
       case 'pctPlan': return pctFmt(r.pctPlan);
       case 'desv': return r.desv == null ? '<span class="muted">—</span>' : `<span class="delta ${r.desv >= -0.05 ? 'good' : r.desv >= -0.10 ? 'warn' : 'bad'}">${ptsFmt(r.desv)}</span>`;
